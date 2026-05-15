@@ -17,7 +17,7 @@ export default function Home() {
     <div className="flex h-[100dvh] flex-col">
       <AppHeader />
 
-      <main className="relative flex-1 overflow-hidden pb-[calc(env(safe-area-inset-bottom)+64px)]">
+      <main className="relative flex-1 overflow-hidden pb-[calc(env(safe-area-inset-bottom)+80px)]">
         {ready && identity ? (
           <>
             <ChatTab identity={identity} active={tab === "chat"} />
