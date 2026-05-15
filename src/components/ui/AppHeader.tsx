@@ -30,7 +30,7 @@ export function AppHeader({ right, subtitle }: Props) {
           </div>
           <div className="flex flex-col leading-tight">
             <span className="text-[10px] tracking-[0.22em] text-white/70">
-              HYUNDAI AUTOEVER · HT AX추진TFT
+              HYUNDAI AUTOEVER · HR AX추진TFT
             </span>
             <span className="text-[17px] font-semibold tracking-tight">
               AX 웨비나
