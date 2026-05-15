@@ -1,0 +1,66 @@
+@import "tailwindcss";
+
+:root {
+  --ax-bg: #f7f8fa;
+  --ax-surface: #ffffff;
+  --ax-text: #1a1a1a;
+  --ax-text-muted: #6b7280;
+  --ax-border: #e5e7eb;
+
+  --hyundai-blue: #002c5f;
+  --hyundai-active-blue: #00aad2;
+  --hyundai-silver: #aab7c4;
+
+  --status-very: #ff6b35;
+  --status-good: #00aad2;
+  --status-soso: #aab7c4;
+  --status-hard: #6b7280;
+}
+
+@theme inline {
+  --color-background: var(--ax-bg);
+  --color-foreground: var(--ax-text);
+  --color-surface: var(--ax-surface);
+  --color-muted: var(--ax-text-muted);
+  --color-border: var(--ax-border);
+
+  --color-hyundai: var(--hyundai-blue);
+  --color-hyundai-accent: var(--hyundai-active-blue);
+
+  --color-status-very: var(--status-very);
+  --color-status-good: var(--status-good);
+  --color-status-soso: var(--status-soso);
+  --color-status-hard: var(--status-hard);
+
+  --font-sans:
+    "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont,
+    "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+}
+
+html,
+body {
+  font-family: var(--font-sans);
+  -webkit-tap-highlight-color: transparent;
+}
+
+input,
+textarea,
+button,
+select {
+  font: inherit;
+}
+
+/* iOS 줌 방지: 입력 폰트 16px 이상 보장 */
+input,
+textarea {
+  font-size: 16px;
+}
+
+/* 스크롤바를 모바일 톤으로 슬림화 */
+.ax-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+.ax-scroll::-webkit-scrollbar-thumb {
+  background: var(--ax-border);
+  border-radius: 9999px;
+}
