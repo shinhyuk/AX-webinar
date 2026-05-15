@@ -5,9 +5,9 @@ import { useReactions } from "@/hooks/useReactions";
 import type { Identity } from "@/hooks/useIdentity";
 import {
   STATUS_EMOJI,
+  STATUS_GRADIENTS,
   STATUS_KEYS,
   STATUS_LABELS,
-  STATUS_COLORS,
   type StatusKey,
 } from "@/lib/types";
 import { StatusBarChart } from "./StatusBarChart";
@@ -33,19 +33,29 @@ export function StatusTab({ identity, active }: Props) {
   return (
     <section
       className={
-        "ax-scroll h-full overflow-y-auto px-4 pb-8 pt-4 " +
+        "ax-scroll h-full overflow-y-auto px-4 pb-10 pt-4 " +
         (active ? "" : "hidden")
       }
       aria-hidden={!active}
     >
-      <div className="rounded-2xl bg-white p-4 shadow-sm border border-[--ax-border]">
-        <h2 className="text-base font-semibold text-[--ax-text]">
-          지금 어떠세요?
-        </h2>
-        <p className="mt-1 text-sm text-[--ax-text-muted]">
-          현재 상태를 골라주세요. 언제든지 바꿀 수 있어요.
-        </p>
-        <div className="mt-4 grid grid-cols-2 gap-2.5">
+      <div className="ax-card p-5">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-[17px] font-bold tracking-tight text-foreground">
+              지금 어떠세요?
+            </h2>
+            <p className="mt-0.5 text-[13px] text-muted">
+              현재 상태를 골라주세요 · 언제든 변경 가능해요
+            </p>
+          </div>
+          {mine ? (
+            <span className="rounded-full bg-hyundai-soft px-2.5 py-1 text-[11px] font-semibold text-hyundai">
+              참여완료
+            </span>
+          ) : null}
+        </div>
+
+        <div className="mt-5 grid grid-cols-2 gap-2.5">
           {STATUS_KEYS.map((k) => {
             const isMine = mine === k;
             return (
@@ -53,41 +63,54 @@ export function StatusTab({ identity, active }: Props) {
                 key={k}
                 type="button"
                 onClick={() => void handleSelect(k)}
-                className={
-                  "flex flex-col items-center justify-center gap-1 rounded-2xl border-2 px-3 py-4 text-sm font-semibold transition-all " +
-                  (isMine
-                    ? "border-transparent text-white shadow-md"
-                    : "border-[--ax-border] bg-white text-[--ax-text] hover:border-[--hyundai-blue]/40")
-                }
-                style={
-                  isMine
-                    ? { backgroundColor: STATUS_COLORS[k] }
-                    : undefined
-                }
                 aria-pressed={isMine}
+                className={
+                  "group relative flex flex-col items-center justify-center gap-1.5 overflow-hidden rounded-2xl px-3 py-5 text-sm font-semibold transition-all active:scale-[0.98] " +
+                  (isMine
+                    ? "text-white shadow-lg ring-2 ring-white/40 ring-offset-2 ring-offset-surface"
+                    : "border border-line bg-background text-foreground hover:border-hyundai/30 hover:bg-surface")
+                }
+                style={isMine ? { backgroundImage: STATUS_GRADIENTS[k] } : undefined}
               >
-                <span className="text-2xl leading-none">{STATUS_EMOJI[k]}</span>
+                <span className="text-3xl leading-none">{STATUS_EMOJI[k]}</span>
                 <span className="leading-tight">{STATUS_LABELS[k]}</span>
+                {isMine ? (
+                  <span className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-white/25 backdrop-blur">
+                    <svg
+                      viewBox="0 0 24 24"
+                      className="h-3 w-3"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M5 12l5 5L20 7" />
+                    </svg>
+                  </span>
+                ) : null}
               </button>
             );
           })}
         </div>
       </div>
 
-      <div className="mt-4 rounded-2xl bg-white p-4 shadow-sm border border-[--ax-border]">
+      <div className="ax-card mt-3 p-5">
         <div className="flex items-baseline justify-between">
-          <h3 className="text-base font-semibold text-[--ax-text]">
+          <h3 className="text-[15px] font-bold tracking-tight text-foreground">
             실시간 현황
           </h3>
-          <span className="text-sm text-[--ax-text-muted]">
-            총 {total}명 참여
+          <span className="text-[13px] text-muted">
+            총{" "}
+            <span className="font-semibold text-foreground tabular-nums">
+              {total}
+            </span>
+            명 참여
           </span>
         </div>
-        <div className="mt-3">
+        <div className="mt-4">
           {loading ? (
-            <p className="py-6 text-center text-sm text-[--ax-text-muted]">
-              불러오는 중...
-            </p>
+            <p className="py-6 text-center text-sm text-muted">불러오는 중...</p>
           ) : (
             <StatusBarChart counts={counts} total={total} mine={mine} />
           )}
@@ -95,7 +118,9 @@ export function StatusTab({ identity, active }: Props) {
       </div>
 
       {error ? (
-        <p className="mt-3 text-sm text-red-600">{error}</p>
+        <p className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-xs font-medium text-red-700">
+          {error}
+        </p>
       ) : null}
     </section>
   );

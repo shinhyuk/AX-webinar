@@ -32,52 +32,55 @@ function Row({
   return (
     <li
       className={
-        "rounded-xl border px-3 py-2.5 " +
+        "rounded-2xl px-4 py-3 transition-all " +
         (q.answered
-          ? "border-[--ax-border] bg-[--ax-bg]/50"
-          : "border-[--ax-border] bg-white")
+          ? "border border-line-soft bg-background/60"
+          : "border border-line-soft bg-surface shadow-sm")
       }
     >
       <div className="flex items-center justify-between text-xs">
         <div className="flex items-center gap-1.5">
           <span
             className={
-              "rounded-full px-2 py-0.5 text-[10px] font-semibold " +
+              "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold " +
               (q.answered
-                ? "bg-[--ax-border] text-[--ax-text-muted]"
-                : "bg-[--hyundai-active-blue]/15 text-[--hyundai-active-blue]")
+                ? "bg-line text-muted"
+                : "bg-hyundai-accent/12 text-hyundai-accent")
             }
           >
+            <span
+              className={
+                "h-1.5 w-1.5 rounded-full " +
+                (q.answered ? "bg-muted" : "bg-hyundai-accent animate-pulse")
+              }
+            />
             {q.answered ? "답변완료" : "대기중"}
           </span>
-          <span className="font-medium">{q.nickname}</span>
+          <span className="font-medium text-foreground/80">{q.nickname}</span>
         </div>
-        <span className="text-[10px] text-[--ax-text-muted]">
-          {formatTime(q.ts)}
-        </span>
+        <span className="text-[10px] text-muted/70">{formatTime(q.ts)}</span>
       </div>
       <p
         className={
-          "mt-1.5 whitespace-pre-wrap break-words text-sm leading-relaxed " +
-          (q.answered ? "text-[--ax-text-muted]" : "text-[--ax-text]")
+          "mt-2 whitespace-pre-wrap break-words text-[14px] leading-relaxed " +
+          (q.answered ? "text-muted" : "text-foreground")
         }
       >
         {q.text}
       </p>
-      <div className="mt-2.5 flex justify-end gap-1.5">
+      <div className="mt-3 flex justify-end gap-2">
         <button
           type="button"
           disabled={busy}
           onClick={() => void wrap(onToggle)}
           className={
-            "rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors " +
+            "rounded-xl px-3 py-1.5 text-xs font-semibold transition-all active:scale-95 disabled:opacity-50 " +
             (q.answered
-              ? "border border-[--ax-border] bg-white text-[--ax-text] hover:bg-[--ax-bg]"
-              : "bg-[--hyundai-blue] text-white hover:bg-[#001f44]") +
-            " disabled:opacity-50"
+              ? "border border-line bg-surface text-foreground hover:bg-background"
+              : "bg-hyundai text-white shadow-md shadow-hyundai/20 hover:bg-hyundai-dark")
           }
         >
-          {q.answered ? "대기중으로 되돌리기" : "답변완료 처리"}
+          {q.answered ? "대기중으로" : "답변완료"}
         </button>
         <button
           type="button"
@@ -87,7 +90,7 @@ function Row({
               void wrap(onDelete);
             }
           }}
-          className="rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50"
+          className="rounded-xl border border-red-200 bg-surface px-3 py-1.5 text-xs font-semibold text-red-600 transition-all hover:bg-red-50 active:scale-95 disabled:opacity-50"
         >
           삭제
         </button>
@@ -101,28 +104,29 @@ export function QuestionsAdmin() {
 
   if (loading) {
     return (
-      <p className="py-6 text-center text-sm text-[--ax-text-muted]">
-        불러오는 중...
-      </p>
+      <p className="py-6 text-center text-sm text-muted">불러오는 중...</p>
     );
   }
 
   if (pending.length === 0 && answered.length === 0) {
     return (
-      <p className="py-6 text-center text-sm text-[--ax-text-muted]">
+      <p className="py-6 text-center text-sm text-muted">
         등록된 질문이 없습니다.
       </p>
     );
   }
 
   return (
-    <div className="max-h-[70dvh] overflow-y-auto pr-1 ax-scroll">
-      <div className="mb-2 flex items-center justify-between text-xs">
-        <span className="text-[--ax-text-muted]">
-          대기 {pending.length} · 완료 {answered.length}
+    <div className="ax-scroll max-h-[70dvh] overflow-y-auto pr-1">
+      <div className="mb-3 flex items-center gap-2 text-xs">
+        <span className="rounded-full bg-hyundai-accent/12 px-2 py-0.5 font-semibold text-hyundai-accent">
+          대기 {pending.length}
+        </span>
+        <span className="rounded-full bg-line px-2 py-0.5 font-semibold text-muted">
+          완료 {answered.length}
         </span>
       </div>
-      <ul className="flex flex-col gap-2">
+      <ul className="flex flex-col gap-2.5">
         {pending.map((q) => (
           <Row
             key={q.id}
@@ -132,10 +136,10 @@ export function QuestionsAdmin() {
           />
         ))}
         {answered.length > 0 ? (
-          <li className="my-2 flex items-center gap-2 text-[10px] font-semibold tracking-[0.18em] text-[--ax-text-muted]">
-            <span className="h-px flex-1 bg-[--ax-border]" />
+          <li className="my-2 flex items-center gap-2 text-[10px] font-semibold tracking-[0.22em] text-muted">
+            <span className="h-px flex-1 bg-line" />
             답변완료
-            <span className="h-px flex-1 bg-[--ax-border]" />
+            <span className="h-px flex-1 bg-line" />
           </li>
         ) : null}
         {answered.map((q) => (

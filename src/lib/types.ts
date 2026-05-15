@@ -40,10 +40,17 @@ export const STATUS_EMOJI: Record<StatusKey, string> = {
 };
 
 export const STATUS_COLORS: Record<StatusKey, string> = {
-  veryInteresting: "var(--status-very)",
-  good: "var(--status-good)",
-  soso: "var(--status-soso)",
-  difficult: "var(--status-hard)",
+  veryInteresting: "var(--color-status-very)",
+  good: "var(--color-status-good)",
+  soso: "var(--color-status-soso)",
+  difficult: "var(--color-status-hard)",
+};
+
+export const STATUS_GRADIENTS: Record<StatusKey, string> = {
+  veryInteresting: "linear-gradient(135deg, #ff7e3d 0%, #ff5a78 100%)",
+  good: "linear-gradient(135deg, #00bdd6 0%, #0084c7 100%)",
+  soso: "linear-gradient(135deg, #b0bcc9 0%, #7c8a99 100%)",
+  difficult: "linear-gradient(135deg, #5b6577 0%, #34405a 100%)",
 };
 
 export type ReactionCounts = Record<StatusKey, number>;

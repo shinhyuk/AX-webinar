@@ -14,46 +14,44 @@ function formatTime(ts: number): string {
   return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 }
 
-function QuestionCard({
-  q,
-  mine,
-}: {
-  q: Question;
-  mine: boolean;
-}) {
+function QuestionCard({ q, mine }: { q: Question; mine: boolean }) {
   return (
     <article
       className={
-        "rounded-2xl border px-4 py-3 transition-colors " +
+        "rounded-2xl px-4 py-3 transition-all " +
         (q.answered
-          ? "border-[--ax-border] bg-[--ax-bg]/60 text-[--ax-text-muted]"
-          : "border-[--ax-border] bg-white text-[--ax-text]")
+          ? "border border-line-soft bg-background/60 text-muted"
+          : "ax-card text-foreground")
       }
     >
       <header className="flex items-center justify-between text-xs">
         <div className="flex items-center gap-1.5">
           <span
             className={
-              "rounded-full px-2 py-0.5 text-[10px] font-semibold " +
+              "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold " +
               (q.answered
-                ? "bg-[--ax-border] text-[--ax-text-muted]"
-                : "bg-[--hyundai-active-blue]/15 text-[--hyundai-active-blue]")
+                ? "bg-line text-muted"
+                : "bg-hyundai-accent/12 text-hyundai-accent")
             }
           >
+            <span
+              className={
+                "h-1.5 w-1.5 rounded-full " +
+                (q.answered ? "bg-muted" : "bg-hyundai-accent animate-pulse")
+              }
+            />
             {q.answered ? "답변완료" : "대기중"}
           </span>
-          <span className="font-medium">
+          <span className="font-medium text-foreground/80">
             {mine ? "나" : q.nickname}
           </span>
         </div>
-        <span className="text-[10px] text-[--ax-text-muted]">
-          {formatTime(q.ts)}
-        </span>
+        <span className="text-[10px] text-muted/70">{formatTime(q.ts)}</span>
       </header>
       <p
         className={
-          "mt-1.5 whitespace-pre-wrap break-words text-sm leading-relaxed " +
-          (q.answered ? "line-through decoration-[--ax-border]" : "")
+          "mt-2 whitespace-pre-wrap break-words text-[14.5px] leading-relaxed " +
+          (q.answered ? "text-muted" : "text-foreground")
         }
       >
         {q.text}
@@ -65,34 +63,61 @@ function QuestionCard({
 export function QuestionList({ pending, answered, myUserId, loading }: Props) {
   if (loading) {
     return (
-      <div className="flex flex-1 items-center justify-center text-sm text-[--ax-text-muted]">
-        불러오는 중...
+      <div className="flex flex-1 items-center justify-center text-sm text-muted">
+        <span className="inline-flex items-center gap-2">
+          <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted" />
+          <span
+            className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted"
+            style={{ animationDelay: "120ms" }}
+          />
+          <span
+            className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted"
+            style={{ animationDelay: "240ms" }}
+          />
+        </span>
       </div>
     );
   }
 
   if (pending.length === 0 && answered.length === 0) {
     return (
-      <div className="flex flex-1 items-center justify-center px-8 text-center text-sm text-[--ax-text-muted]">
-        아직 등록된 질문이 없어요.
-        <br />첫 질문을 남겨보세요!
+      <div className="flex flex-1 flex-col items-center justify-center px-8 text-center">
+        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-hyundai-soft text-hyundai">
+          <svg
+            viewBox="0 0 24 24"
+            className="h-6 w-6"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <circle cx="12" cy="12" r="9" />
+            <path d="M9.5 9.5a2.5 2.5 0 0 1 5 0c0 1.5-2.5 2-2.5 3.5" />
+            <line x1="12" y1="17" x2="12" y2="17.01" />
+          </svg>
+        </div>
+        <p className="mt-3 text-sm font-medium text-foreground">
+          아직 등록된 질문이 없어요
+        </p>
+        <p className="mt-1 text-sm text-muted">발표자에게 첫 질문을 남겨보세요</p>
       </div>
     );
   }
 
   return (
-    <div className="ax-scroll flex-1 overflow-y-auto px-3 py-3">
-      <div className="flex flex-col gap-2">
+    <div className="ax-scroll flex-1 overflow-y-auto px-3 pt-3 pb-2">
+      <div className="flex flex-col gap-2.5">
         {pending.map((q) => (
           <QuestionCard key={q.id} q={q} mine={q.userId === myUserId} />
         ))}
         {answered.length > 0 ? (
           <div className="mt-4 mb-1 flex items-center gap-2">
-            <span className="h-px flex-1 bg-[--ax-border]" />
-            <span className="text-[10px] font-semibold tracking-[0.18em] text-[--ax-text-muted]">
-              답변완료 {answered.length}
+            <span className="h-px flex-1 bg-line" />
+            <span className="text-[10px] font-semibold tracking-[0.22em] text-muted">
+              답변완료 · {answered.length}
             </span>
-            <span className="h-px flex-1 bg-[--ax-border]" />
+            <span className="h-px flex-1 bg-line" />
           </div>
         ) : null}
         {answered.map((q) => (

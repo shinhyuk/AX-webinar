@@ -22,29 +22,39 @@ export function QuestionComposer({ onSubmit }: Props) {
     }
   }
 
+  const canSend = text.trim().length > 0 && !sending;
+
   return (
     <form
       onSubmit={(e) => {
         e.preventDefault();
         void handleSubmit();
       }}
-      className="border-b border-[--ax-border] bg-white px-3 py-2"
+      className="border-b border-line-soft bg-surface px-3 pt-3 pb-3"
     >
-      <div className="flex items-end gap-2">
+      <label className="px-1 text-[11px] font-medium tracking-wide text-muted">
+        발표자에게 질문하기
+      </label>
+      <div className="mt-1.5 flex items-end gap-2">
         <textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
           rows={2}
           maxLength={500}
-          placeholder="발표자에게 궁금한 점을 남겨주세요"
-          className="ax-scroll min-h-[60px] flex-1 resize-none rounded-2xl border border-[--ax-border] bg-[--ax-bg] px-3 py-2 leading-relaxed outline-none focus:border-[--hyundai-blue]"
+          placeholder="궁금한 점을 자유롭게 남겨주세요"
+          className="ax-scroll min-h-[64px] flex-1 resize-none rounded-2xl border border-line bg-background px-4 py-2.5 leading-relaxed outline-none transition-colors focus:border-hyundai focus:bg-surface focus:ring-4 focus:ring-hyundai/10"
         />
         <button
           type="submit"
-          disabled={sending || text.trim().length === 0}
-          className="h-11 shrink-0 rounded-2xl bg-[--hyundai-blue] px-4 font-semibold text-white transition-colors disabled:cursor-not-allowed disabled:bg-[--hyundai-silver]"
+          disabled={!canSend}
+          className={
+            "h-12 shrink-0 rounded-2xl px-4 text-sm font-semibold transition-all " +
+            (canSend
+              ? "bg-hyundai text-white shadow-md shadow-hyundai/25 active:scale-95"
+              : "bg-line text-muted")
+          }
         >
-          질문 등록
+          등록
         </button>
       </div>
     </form>
