@@ -8,19 +8,20 @@ export function StatsPanel() {
 
   if (loading) {
     return (
-      <p className="py-6 text-center text-sm text-[--ax-text-muted]">
-        불러오는 중...
-      </p>
+      <p className="py-6 text-center text-sm text-muted">불러오는 중...</p>
     );
   }
 
   return (
     <div>
-      <p className="text-sm text-[--ax-text-muted]">
-        총 <span className="font-semibold text-[--ax-text]">{total}명</span>이
-        현재 상태를 표시했습니다.
-      </p>
-      <div className="mt-3">
+      <div className="flex items-center gap-2 rounded-2xl bg-hyundai-soft px-4 py-3">
+        <span className="text-xs text-muted">참여 인원</span>
+        <span className="ml-auto text-xl font-bold tabular-nums text-hyundai">
+          {total}
+          <span className="ml-0.5 text-xs font-medium">명</span>
+        </span>
+      </div>
+      <div className="mt-4">
         <StatusBarChart counts={counts} total={total} size="lg" />
       </div>
     </div>

@@ -31,7 +31,9 @@ export function QnATab({ identity, active }: Props) {
     >
       <QuestionComposer onSubmit={handleSubmit} />
       {error ? (
-        <div className="px-4 py-1 text-xs text-red-600">{error}</div>
+        <div className="mx-3 mt-2 rounded-xl bg-red-50 px-3 py-2 text-xs font-medium text-red-700">
+          {error}
+        </div>
       ) : null}
       <QuestionList
         pending={pending}

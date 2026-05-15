@@ -7,15 +7,16 @@ export const metadata = {
 
 export default function AdminPage() {
   return (
-    <div className="flex min-h-[100dvh] flex-col">
+    <div className="flex h-[100dvh] flex-col">
       <AppHeader
+        subtitle="Host Console"
         right={
-          <span className="rounded-full bg-white/10 px-2.5 py-1 text-xs font-medium">
+          <span className="rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-semibold tracking-wider text-white backdrop-blur ring-1 ring-white/15">
             HOST
           </span>
         }
       />
-      <main className="flex-1 px-4 py-4 md:px-8 md:py-6">
+      <main className="flex-1 min-h-0">
         <AdminDashboard />
       </main>
     </div>

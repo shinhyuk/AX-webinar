@@ -1,46 +1,39 @@
 @import "tailwindcss";
 
-:root {
-  --ax-bg: #f7f8fa;
-  --ax-surface: #ffffff;
-  --ax-text: #1a1a1a;
-  --ax-text-muted: #6b7280;
-  --ax-border: #e5e7eb;
+@theme {
+  --color-hyundai: #002c5f;
+  --color-hyundai-dark: #001a3d;
+  --color-hyundai-soft: #e6ecf3;
+  --color-hyundai-accent: #00aad2;
+  --color-silver: #aab7c4;
 
-  --hyundai-blue: #002c5f;
-  --hyundai-active-blue: #00aad2;
-  --hyundai-silver: #aab7c4;
+  --color-background: #f5f7fb;
+  --color-surface: #ffffff;
+  --color-foreground: #0b1424;
+  --color-muted: #64748b;
+  --color-line: #e5e7eb;
+  --color-line-soft: #eef0f5;
 
-  --status-very: #ff6b35;
-  --status-good: #00aad2;
-  --status-soso: #aab7c4;
-  --status-hard: #6b7280;
-}
-
-@theme inline {
-  --color-background: var(--ax-bg);
-  --color-foreground: var(--ax-text);
-  --color-surface: var(--ax-surface);
-  --color-muted: var(--ax-text-muted);
-  --color-border: var(--ax-border);
-
-  --color-hyundai: var(--hyundai-blue);
-  --color-hyundai-accent: var(--hyundai-active-blue);
-
-  --color-status-very: var(--status-very);
-  --color-status-good: var(--status-good);
-  --color-status-soso: var(--status-soso);
-  --color-status-hard: var(--status-hard);
+  --color-status-very: #ff6b35;
+  --color-status-good: #00aad2;
+  --color-status-soso: #94a3b8;
+  --color-status-hard: #475569;
 
   --font-sans:
     "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont,
     "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+
+  --radius-card: 20px;
+  --shadow-card: 0 1px 2px rgba(11, 20, 36, 0.04),
+    0 8px 24px -8px rgba(11, 20, 36, 0.08);
+  --shadow-soft: 0 1px 2px rgba(11, 20, 36, 0.04);
 }
 
 html,
 body {
   font-family: var(--font-sans);
   -webkit-tap-highlight-color: transparent;
+  -webkit-font-smoothing: antialiased;
 }
 
 input,
@@ -50,17 +43,45 @@ select {
   font: inherit;
 }
 
-/* iOS 줌 방지: 입력 폰트 16px 이상 보장 */
+/* iOS 줌 방지 */
 input,
 textarea {
   font-size: 16px;
 }
 
-/* 스크롤바를 모바일 톤으로 슬림화 */
+.ax-scroll {
+  scrollbar-width: thin;
+}
 .ax-scroll::-webkit-scrollbar {
   width: 6px;
+  height: 6px;
 }
 .ax-scroll::-webkit-scrollbar-thumb {
-  background: var(--ax-border);
+  background: var(--color-line);
   border-radius: 9999px;
+}
+
+/* 헤더 그라디언트 배경 */
+.ax-header-bg {
+  background:
+    radial-gradient(120% 80% at 0% 0%, rgba(0, 170, 210, 0.25) 0%, transparent 60%),
+    radial-gradient(120% 80% at 100% 0%, rgba(0, 50, 110, 0.0) 0%, transparent 60%),
+    linear-gradient(180deg, #002c5f 0%, #001a3d 100%);
+}
+
+/* 카드 공통 */
+.ax-card {
+  background: var(--color-surface);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  border: 1px solid var(--color-line-soft);
+}
+
+/* 페이드인 */
+@keyframes axFadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.ax-fade-in {
+  animation: axFadeIn 200ms ease-out;
 }
