@@ -117,7 +117,7 @@ export function QuestionsAdmin() {
   }
 
   return (
-    <div className="ax-scroll max-h-[70dvh] overflow-y-auto pr-1">
+    <div>
       <div className="mb-3 flex items-center gap-2 text-xs">
         <span className="rounded-full bg-hyundai-accent/12 px-2 py-0.5 font-semibold text-hyundai-accent">
           대기 {pending.length}

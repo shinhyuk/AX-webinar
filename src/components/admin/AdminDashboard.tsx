@@ -1,14 +1,45 @@
 "use client";
 
-import { QuestionsAdmin } from "./QuestionsAdmin";
-import { StatsPanel } from "./StatsPanel";
-import { ResetButton } from "./ResetButton";
+import { ChatMonitor } from "./ChatMonitor";
 import { LogoutButton } from "./LogoutButton";
+import { QuestionsAdmin } from "./QuestionsAdmin";
+import { ResetButton } from "./ResetButton";
+import { StatsPanel } from "./StatsPanel";
+
+type PanelProps = {
+  title: string;
+  subtitle?: string;
+  badge?: React.ReactNode;
+  children: React.ReactNode;
+};
+
+function PanelCard({ title, subtitle, badge, children }: PanelProps) {
+  return (
+    <section className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-line-soft bg-surface shadow-sm">
+      <header className="flex items-center justify-between border-b border-line-soft px-5 py-3.5">
+        <div>
+          <div className="flex items-center gap-2">
+            <h2 className="text-[15px] font-bold tracking-tight text-foreground">
+              {title}
+            </h2>
+            {badge}
+          </div>
+          {subtitle ? (
+            <p className="mt-0.5 text-[11.5px] text-muted">{subtitle}</p>
+          ) : null}
+        </div>
+      </header>
+      <div className="ax-scroll flex-1 min-h-0 overflow-y-auto p-4">
+        {children}
+      </div>
+    </section>
+  );
+}
 
 export function AdminDashboard() {
   return (
-    <div className="mx-auto max-w-5xl">
-      <div className="flex items-center justify-between">
+    <div className="flex h-full flex-col px-4 py-4 md:px-6 md:py-5">
+      <div className="mx-auto flex w-full max-w-[1600px] items-center justify-between">
         <div>
           <p className="text-[11px] font-semibold tracking-[0.22em] text-hyundai">
             HOST CONSOLE
@@ -23,28 +54,27 @@ export function AdminDashboard() {
         </div>
       </div>
 
-      <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
-        <section className="ax-card p-5">
-          <div className="flex items-center justify-between">
-            <h2 className="text-[15px] font-bold text-foreground">질문 관리</h2>
-          </div>
-          <p className="mt-0.5 text-xs text-muted">
-            답변완료 처리하면 참가자 화면에서 자동으로 하단으로 이동합니다.
-          </p>
-          <div className="mt-4">
-            <QuestionsAdmin />
-          </div>
-        </section>
+      <div className="mx-auto mt-4 grid w-full max-w-[1600px] flex-1 min-h-0 grid-cols-1 gap-4 lg:grid-cols-[1fr_1.2fr_1fr]">
+        <PanelCard
+          title="실시간 채팅"
+          subtitle="참가자들의 대화를 실시간으로 모니터링합니다"
+        >
+          <ChatMonitor />
+        </PanelCard>
 
-        <section className="ax-card p-5">
-          <h2 className="text-[15px] font-bold text-foreground">실시간 통계</h2>
-          <p className="mt-0.5 text-xs text-muted">
-            참가자들의 현재 상태 분포입니다.
-          </p>
-          <div className="mt-4">
-            <StatsPanel />
-          </div>
-        </section>
+        <PanelCard
+          title="질문"
+          subtitle="답변완료 처리 시 참가자 화면에서 하단으로 이동합니다"
+        >
+          <QuestionsAdmin />
+        </PanelCard>
+
+        <PanelCard
+          title="현재 상태"
+          subtitle="참가자들의 실시간 반응 분포"
+        >
+          <StatsPanel />
+        </PanelCard>
       </div>
     </div>
   );
