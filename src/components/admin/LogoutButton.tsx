@@ -23,7 +23,7 @@ export function LogoutButton() {
       type="button"
       disabled={busy}
       onClick={() => void handleLogout()}
-      className="rounded-xl border border-line bg-surface px-3 py-1.5 text-xs font-semibold text-foreground transition-all hover:bg-background active:scale-95 disabled:opacity-50"
+      className="ax-btn-glass rounded-xl px-3 py-1.5 text-xs font-semibold text-foreground disabled:opacity-50"
     >
       로그아웃
     </button>

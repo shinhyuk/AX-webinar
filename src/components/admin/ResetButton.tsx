@@ -30,12 +30,12 @@ export function ResetButton() {
         type="button"
         disabled={busy}
         onClick={() => void handleReset()}
-        className="rounded-xl border border-red-200 bg-surface px-3 py-1.5 text-xs font-semibold text-red-600 transition-all hover:bg-red-50 active:scale-95 disabled:opacity-50"
+        className="rounded-xl border border-red-400/30 bg-red-500/10 px-3 py-1.5 text-xs font-semibold text-red-300 transition-all hover:bg-red-500/20 active:scale-95 disabled:opacity-50"
       >
         {busy ? "초기화 중..." : "전체 초기화"}
       </button>
       {error ? (
-        <p className="mt-1 text-[11px] text-red-600">{error}</p>
+        <p className="mt-1 text-[11px] text-red-300">{error}</p>
       ) : null}
     </div>
   );

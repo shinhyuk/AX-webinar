@@ -25,15 +25,15 @@ export function NicknameModal({ onSubmit }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-foreground/60 backdrop-blur-sm p-0 sm:p-4">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-md p-0 sm:p-4">
       <form
         onSubmit={handleSubmit}
-        className="ax-fade-in w-full sm:max-w-sm rounded-t-3xl sm:rounded-3xl bg-surface px-6 pt-7 pb-6 shadow-2xl"
+        className="ax-glass-strong ax-fade-in w-full sm:max-w-sm rounded-t-3xl sm:rounded-3xl px-6 pt-7 pb-6 shadow-2xl"
         style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 1.5rem)" }}
       >
-        <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-line sm:hidden" />
-        <div className="flex items-center gap-2 text-hyundai">
-          <span className="inline-block h-2 w-2 rounded-full bg-hyundai" />
+        <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/15 sm:hidden" />
+        <div className="flex items-center gap-2 text-hyundai-accent">
+          <span className="inline-block h-2 w-2 rounded-full bg-hyundai-accent ax-pulse" />
           <span className="text-[11px] font-semibold tracking-[0.18em]">
             AX 웨비나 참여
           </span>
@@ -58,11 +58,11 @@ export function NicknameModal({ onSubmit }: Props) {
             placeholder="예: 민지"
             maxLength={12}
             autoFocus
-            className="mt-1.5 w-full rounded-2xl border border-line bg-background px-4 py-3.5 outline-none transition-colors focus:border-hyundai focus:bg-surface focus:ring-4 focus:ring-hyundai/10"
+            className="ax-input mt-1.5 w-full rounded-2xl px-4 py-3.5"
           />
           <div className="mt-1 flex items-center justify-between text-[11px]">
             {error ? (
-              <span className="text-red-600">{error}</span>
+              <span className="text-red-400">{error}</span>
             ) : (
               <span className="text-muted/70">한글, 영문, 숫자 모두 가능</span>
             )}
@@ -73,7 +73,7 @@ export function NicknameModal({ onSubmit }: Props) {
         </div>
         <button
           type="submit"
-          className="mt-6 w-full rounded-2xl bg-hyundai py-4 text-[15px] font-semibold text-white transition-all hover:bg-hyundai-dark active:scale-[0.98] shadow-lg shadow-hyundai/20"
+          className="ax-btn-primary mt-6 w-full rounded-2xl py-4 text-[15px] font-bold"
         >
           시작하기
         </button>

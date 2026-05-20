@@ -77,7 +77,7 @@ type Props = {
 export function TabBar({ active, onChange }: Props) {
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-20 border-t border-line-soft bg-white/90 backdrop-blur-xl"
+      className="ax-glass-strong fixed inset-x-0 bottom-0 z-20 border-t border-line"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
       <ul className="mx-auto grid max-w-screen-sm grid-cols-3 px-2 pt-2">
@@ -97,13 +97,17 @@ export function TabBar({ active, onChange }: Props) {
                 aria-pressed={isActive}
                 className={
                   "group flex w-full flex-col items-center justify-center gap-1 py-2 transition-colors " +
-                  (isActive ? "text-hyundai" : "text-muted active:text-foreground")
+                  (isActive
+                    ? "text-hyundai-accent"
+                    : "text-muted active:text-foreground")
                 }
               >
                 <span
                   className={
                     "flex h-9 w-12 items-center justify-center rounded-full transition-all " +
-                    (isActive ? "bg-hyundai-soft" : "bg-transparent")
+                    (isActive
+                      ? "bg-gradient-to-br from-hyundai-accent/25 to-[#7c3aed]/25 ring-1 ring-hyundai-accent/30 shadow-[0_0_18px_rgba(0,212,255,0.35)]"
+                      : "bg-transparent")
                   }
                 >
                   <Icon active={isActive} />
@@ -111,7 +115,7 @@ export function TabBar({ active, onChange }: Props) {
                 <span
                   className={
                     "text-[11px] " +
-                    (isActive ? "font-semibold" : "font-medium")
+                    (isActive ? "font-bold" : "font-medium")
                   }
                 >
                   {t.label}

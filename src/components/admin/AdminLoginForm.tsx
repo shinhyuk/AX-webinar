@@ -38,8 +38,8 @@ export function AdminLoginForm() {
       onSubmit={handleSubmit}
       className="ax-card w-full max-w-sm p-7"
     >
-      <div className="flex items-center gap-2 text-hyundai">
-        <span className="inline-block h-2 w-2 rounded-full bg-hyundai" />
+      <div className="flex items-center gap-2 text-hyundai-accent">
+        <span className="inline-block h-2 w-2 rounded-full bg-hyundai-accent ax-pulse" />
         <span className="text-[11px] font-semibold tracking-[0.22em]">
           HOST CONSOLE
         </span>
@@ -58,16 +58,16 @@ export function AdminLoginForm() {
           onChange={(e) => setPassword(e.target.value)}
           placeholder="••••••••"
           autoFocus
-          className="mt-1.5 w-full rounded-2xl border border-line bg-background px-4 py-3.5 outline-none transition-colors focus:border-hyundai focus:bg-surface focus:ring-4 focus:ring-hyundai/10"
+          className="ax-input mt-1.5 w-full rounded-2xl px-4 py-3.5"
         />
       </div>
       {error ? (
-        <p className="mt-2 text-sm font-medium text-red-600">{error}</p>
+        <p className="mt-2 text-sm font-medium text-red-400">{error}</p>
       ) : null}
       <button
         type="submit"
         disabled={pending || !password}
-        className="mt-5 w-full rounded-2xl bg-hyundai py-3.5 text-[15px] font-semibold text-white shadow-lg shadow-hyundai/20 transition-all hover:bg-hyundai-dark active:scale-[0.98] disabled:bg-silver disabled:shadow-none"
+        className="ax-btn-primary mt-5 w-full rounded-2xl py-3.5 text-[15px] font-bold"
       >
         {pending ? "확인 중..." : "로그인"}
       </button>

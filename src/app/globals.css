@@ -3,30 +3,33 @@
 @theme {
   --color-hyundai: #002c5f;
   --color-hyundai-dark: #001a3d;
-  --color-hyundai-soft: #e6ecf3;
-  --color-hyundai-accent: #00aad2;
+  --color-hyundai-soft: rgba(0, 170, 210, 0.16);
+  --color-hyundai-accent: #00d4ff;
   --color-silver: #aab7c4;
 
-  --color-background: #f5f7fb;
-  --color-surface: #ffffff;
-  --color-foreground: #0b1424;
-  --color-muted: #64748b;
-  --color-line: #e5e7eb;
-  --color-line-soft: #eef0f5;
+  --color-background: #05060a;
+  --color-surface: rgba(255, 255, 255, 0.06);
+  --color-surface-strong: rgba(255, 255, 255, 0.1);
+  --color-foreground: #f1f4fb;
+  --color-muted: #9aa4bf;
+  --color-line: rgba(255, 255, 255, 0.08);
+  --color-line-soft: rgba(255, 255, 255, 0.05);
 
   --color-status-very: #ff6b35;
-  --color-status-good: #00aad2;
-  --color-status-soso: #94a3b8;
-  --color-status-hard: #475569;
+  --color-status-good: #00d4ff;
+  --color-status-soso: #a3aed0;
+  --color-status-hard: #6b7595;
 
   --font-sans:
-    "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont,
-    "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+    "Wanted Sans Variable", "Wanted Sans", "Pretendard Variable", Pretendard,
+    -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic",
+    system-ui, sans-serif;
 
-  --radius-card: 20px;
-  --shadow-card: 0 1px 2px rgba(11, 20, 36, 0.04),
-    0 8px 24px -8px rgba(11, 20, 36, 0.08);
-  --shadow-soft: 0 1px 2px rgba(11, 20, 36, 0.04);
+  --radius-card: 22px;
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3),
+    0 16px 40px -12px rgba(0, 0, 0, 0.5);
+  --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.25);
+  --shadow-glow: 0 0 24px rgba(0, 212, 255, 0.35);
 }
 
 html,
@@ -34,6 +37,9 @@ body {
   font-family: var(--font-sans);
   -webkit-tap-highlight-color: transparent;
   -webkit-font-smoothing: antialiased;
+  background: #05060a;
+  color: var(--color-foreground);
+  letter-spacing: -0.01em;
 }
 
 input,
@@ -41,6 +47,7 @@ textarea,
 button,
 select {
   font: inherit;
+  color: inherit;
 }
 
 /* iOS 줌 방지 */
@@ -57,24 +64,106 @@ textarea {
   height: 6px;
 }
 .ax-scroll::-webkit-scrollbar-thumb {
-  background: var(--color-line);
+  background: rgba(255, 255, 255, 0.12);
   border-radius: 9999px;
 }
 
-/* 헤더 그라디언트 배경 */
+/* 헤더 그라디언트 */
 .ax-header-bg {
   background:
-    radial-gradient(120% 80% at 0% 0%, rgba(0, 170, 210, 0.25) 0%, transparent 60%),
-    radial-gradient(120% 80% at 100% 0%, rgba(0, 50, 110, 0.0) 0%, transparent 60%),
-    linear-gradient(180deg, #002c5f 0%, #001a3d 100%);
+    radial-gradient(120% 80% at 0% 0%, rgba(0, 212, 255, 0.22) 0%, transparent 60%),
+    radial-gradient(120% 80% at 100% 0%, rgba(120, 60, 220, 0.18) 0%, transparent 60%),
+    linear-gradient(180deg, rgba(5, 8, 22, 0.72) 0%, rgba(5, 8, 22, 0.55) 100%);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-/* 카드 공통 */
+/* 글래스 카드 */
 .ax-card {
-  background: var(--color-surface);
+  background: rgba(255, 255, 255, 0.05);
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-card);
-  border: 1px solid var(--color-line-soft);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+}
+
+/* 글래스 패널 (반투명, 강한 블러) */
+.ax-glass {
+  background: rgba(10, 14, 28, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(22px) saturate(160%);
+  -webkit-backdrop-filter: blur(22px) saturate(160%);
+}
+
+.ax-glass-strong {
+  background: rgba(10, 14, 28, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(28px) saturate(160%);
+  -webkit-backdrop-filter: blur(28px) saturate(160%);
+}
+
+/* 입력 필드 글래스 */
+.ax-input {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--color-foreground);
+  transition: all 200ms ease;
+}
+.ax-input::placeholder {
+  color: rgba(154, 164, 191, 0.55);
+}
+.ax-input:focus {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(0, 212, 255, 0.55);
+  box-shadow: 0 0 0 4px rgba(0, 212, 255, 0.12);
+  outline: none;
+}
+
+/* 프라이머리 버튼 (네온 그라디언트) */
+.ax-btn-primary {
+  background: linear-gradient(135deg, #00d4ff 0%, #4a7dff 50%, #7c3aed 100%);
+  color: #fff;
+  box-shadow:
+    0 8px 24px -6px rgba(0, 212, 255, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  transition: all 200ms ease;
+}
+.ax-btn-primary:hover {
+  box-shadow:
+    0 12px 32px -6px rgba(0, 212, 255, 0.7),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+.ax-btn-primary:active {
+  transform: scale(0.97);
+}
+.ax-btn-primary:disabled {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.35);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+/* 보조 글래스 버튼 */
+.ax-btn-glass {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--color-foreground);
+  transition: all 200ms ease;
+  backdrop-filter: blur(10px);
+}
+.ax-btn-glass:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+.ax-btn-glass:active {
+  transform: scale(0.97);
+}
+
+/* 글로우 효과 */
+.ax-glow-cyan {
+  box-shadow: 0 0 32px rgba(0, 212, 255, 0.4);
 }
 
 /* 페이드인 */
@@ -83,5 +172,17 @@ textarea {
   to { opacity: 1; transform: translateY(0); }
 }
 .ax-fade-in {
-  animation: axFadeIn 200ms ease-out;
+  animation: axFadeIn 220ms ease-out;
 }
+
+@keyframes axGlowPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(0, 212, 255, 0); }
+  50% { box-shadow: 0 0 0 6px rgba(0, 212, 255, 0.18); }
+}
+.ax-pulse {
+  animation: axGlowPulse 2.4s ease-in-out infinite;
+}
+
+/* 본문 텍스트 디폴트 정렬 (다크) */
+.text-foreground { color: var(--color-foreground); }
+.text-muted { color: var(--color-muted); }

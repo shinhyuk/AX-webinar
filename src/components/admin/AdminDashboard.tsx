@@ -15,8 +15,8 @@ type PanelProps = {
 
 function PanelCard({ title, subtitle, badge, children }: PanelProps) {
   return (
-    <section className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-line-soft bg-surface shadow-sm">
-      <header className="flex items-center justify-between border-b border-line-soft px-5 py-3.5">
+    <section className="ax-card flex min-h-0 flex-col overflow-hidden rounded-2xl">
+      <header className="flex items-center justify-between border-b border-line px-5 py-3.5">
         <div>
           <div className="flex items-center gap-2">
             <h2 className="text-[15px] font-bold tracking-tight text-foreground">
@@ -41,7 +41,7 @@ export function AdminDashboard() {
     <div className="flex h-full flex-col px-4 py-4 md:px-6 md:py-5">
       <div className="mx-auto flex w-full max-w-[1600px] items-center justify-between">
         <div>
-          <p className="text-[11px] font-semibold tracking-[0.22em] text-hyundai">
+          <p className="text-[11px] font-semibold tracking-[0.22em] text-hyundai-accent">
             HOST CONSOLE
           </p>
           <h1 className="mt-0.5 text-[20px] font-bold tracking-tight text-foreground">

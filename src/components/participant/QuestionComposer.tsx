@@ -30,9 +30,9 @@ export function QuestionComposer({ onSubmit }: Props) {
         e.preventDefault();
         void handleSubmit();
       }}
-      className="border-b border-line-soft bg-surface px-3 pt-3 pb-3"
+      className="ax-glass border-b border-line px-3 pt-3 pb-3"
     >
-      <label className="px-1 text-[11px] font-medium tracking-wide text-muted">
+      <label className="px-1 text-[11px] font-semibold tracking-wide text-muted">
         발표자에게 질문하기
       </label>
       <div className="mt-1.5 flex items-end gap-2">
@@ -42,17 +42,12 @@ export function QuestionComposer({ onSubmit }: Props) {
           rows={2}
           maxLength={500}
           placeholder="궁금한 점을 자유롭게 남겨주세요"
-          className="ax-scroll min-h-[64px] flex-1 resize-none rounded-2xl border border-line bg-background px-4 py-2.5 leading-relaxed outline-none transition-colors focus:border-hyundai focus:bg-surface focus:ring-4 focus:ring-hyundai/10"
+          className="ax-input ax-scroll min-h-[64px] flex-1 resize-none rounded-2xl px-4 py-2.5 leading-relaxed"
         />
         <button
           type="submit"
           disabled={!canSend}
-          className={
-            "h-12 shrink-0 rounded-2xl px-4 text-sm font-semibold transition-all " +
-            (canSend
-              ? "bg-hyundai text-white shadow-md shadow-hyundai/25 active:scale-95"
-              : "bg-line text-muted")
-          }
+          className="ax-btn-primary h-12 shrink-0 rounded-2xl px-4 text-sm font-bold"
         >
           등록
         </button>

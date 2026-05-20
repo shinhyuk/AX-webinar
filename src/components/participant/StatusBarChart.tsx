@@ -39,13 +39,13 @@ export function StatusBarChart({ counts, total, mine, size = "sm" }: Props) {
                 ) : null}
               </span>
               <span className="tabular-nums text-muted">
-                <span className="font-semibold text-foreground">{pct}%</span>
+                <span className="font-bold text-foreground">{pct}%</span>
                 <span className="ml-1 text-[11px]">· {n}명</span>
               </span>
             </div>
             <div
               className={
-                "mt-1.5 w-full overflow-hidden rounded-full bg-line-soft " +
+                "mt-1.5 w-full overflow-hidden rounded-full bg-white/8 " +
                 barHeight
               }
             >
