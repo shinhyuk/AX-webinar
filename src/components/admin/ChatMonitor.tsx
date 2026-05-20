@@ -22,7 +22,12 @@ export function ChatMonitor() {
         </span>
       </div>
       <div className="flex-1 min-h-0 overflow-hidden rounded-2xl bg-background">
-        <ChatMessageList messages={messages} myUserId="" loading={loading} />
+        <ChatMessageList
+          messages={messages}
+          myUserId=""
+          loading={loading}
+          size="large"
+        />
       </div>
     </div>
   );
