@@ -50,7 +50,7 @@ export function AppHeader({ right, subtitle }: Props) {
             className="ax-btn-glass inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-semibold tracking-tight text-white/90 hover:text-white"
             aria-label="hrax.co.kr 새 탭으로 열기"
           >
-            <span>hrax.co.kr</span>
+            <span>Info</span>
             <svg
               viewBox="0 0 24 24"
               className="h-3.5 w-3.5"
