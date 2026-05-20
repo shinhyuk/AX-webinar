@@ -7,6 +7,7 @@ type Props = {
   messages: ChatMessage[];
   myUserId: string;
   loading: boolean;
+  size?: "default" | "large";
 };
 
 function formatTime(ts: number): string {
@@ -30,8 +31,14 @@ function colorFromId(id: string): string {
   return palette[Math.abs(hash) % palette.length];
 }
 
-export function ChatMessageList({ messages, myUserId, loading }: Props) {
+export function ChatMessageList({
+  messages,
+  myUserId,
+  loading,
+  size = "default",
+}: Props) {
   const endRef = useRef<HTMLDivElement | null>(null);
+  const large = size === "large";
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -113,7 +120,12 @@ export function ChatMessageList({ messages, myUserId, loading }: Props) {
                 }
               >
                 {!sameAuthor ? (
-                  <div className="mb-1 flex items-center gap-1.5 px-1 text-[11px]">
+                  <div
+                    className={
+                      "mb-1 flex items-center gap-1.5 px-1 " +
+                      (large ? "text-[13px]" : "text-[11px]")
+                    }
+                  >
                     <span className="font-semibold text-foreground/90">
                       {mine ? "나" : m.nickname}
                     </span>
@@ -122,7 +134,8 @@ export function ChatMessageList({ messages, myUserId, loading }: Props) {
                 ) : null}
                 <div
                   className={
-                    "whitespace-pre-wrap break-words px-3.5 py-2 text-[14.5px] leading-relaxed backdrop-blur " +
+                    "whitespace-pre-wrap break-words px-3.5 py-2 leading-relaxed backdrop-blur " +
+                    (large ? "text-[17px] " : "text-[14.5px] ") +
                     (mine
                       ? "rounded-2xl rounded-tr-md bg-gradient-to-br from-hyundai-accent to-[#4a7dff] text-white shadow-lg shadow-hyundai-accent/25"
                       : "rounded-2xl rounded-tl-md bg-white/8 text-foreground border border-white/10")
