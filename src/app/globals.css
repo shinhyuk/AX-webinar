@@ -166,17 +166,6 @@ textarea {
   box-shadow: 0 0 32px rgba(0, 212, 255, 0.4);
 }
 
-/* 정적 플라즈마풍 배경 (애니메이션 없음 = 렉 없음) */
-.ax-plasma-static {
-  background-color: #05060a;
-  background-image:
-    radial-gradient(55% 50% at 18% 18%, rgba(0, 212, 255, 0.28) 0%, transparent 60%),
-    radial-gradient(50% 55% at 82% 28%, rgba(124, 58, 237, 0.24) 0%, transparent 58%),
-    radial-gradient(65% 60% at 60% 82%, rgba(74, 125, 255, 0.22) 0%, transparent 60%),
-    radial-gradient(45% 45% at 8% 88%, rgba(0, 212, 255, 0.16) 0%, transparent 58%),
-    radial-gradient(40% 40% at 95% 95%, rgba(124, 58, 237, 0.14) 0%, transparent 55%);
-}
-
 /* 페이드인 */
 @keyframes axFadeIn {
   from { opacity: 0; transform: translateY(4px); }

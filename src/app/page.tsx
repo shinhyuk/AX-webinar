@@ -14,7 +14,7 @@ export default function Home() {
   const [tab, setTab] = useState<TabKey>("chat");
 
   return (
-    <div className="ax-plasma-static relative flex h-[100dvh] flex-col overflow-hidden">
+    <div className="relative flex h-[100dvh] flex-col overflow-hidden bg-background">
       <AppHeader />
 
       <main className="relative flex-1 overflow-hidden pb-[calc(env(safe-area-inset-bottom)+84px)]">

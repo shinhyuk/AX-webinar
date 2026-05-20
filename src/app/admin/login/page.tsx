@@ -8,7 +8,7 @@ export const metadata = {
 
 export default function AdminLoginPage() {
   return (
-    <div className="ax-plasma-static relative flex min-h-[100dvh] flex-col overflow-hidden">
+    <div className="relative flex min-h-[100dvh] flex-col overflow-hidden bg-background">
       <AppHeader />
       <main className="relative flex flex-1 items-center justify-center px-6 py-10">
         <Suspense fallback={null}>
