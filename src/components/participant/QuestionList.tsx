@@ -20,7 +20,7 @@ function QuestionCard({ q, mine }: { q: Question; mine: boolean }) {
       className={
         "rounded-2xl px-4 py-3 transition-all " +
         (q.answered
-          ? "border border-line-soft bg-background/60 text-muted"
+          ? "border border-white/5 bg-white/[0.02] text-muted"
           : "ax-card text-foreground")
       }
     >
@@ -30,8 +30,8 @@ function QuestionCard({ q, mine }: { q: Question; mine: boolean }) {
             className={
               "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold " +
               (q.answered
-                ? "bg-line text-muted"
-                : "bg-hyundai-accent/12 text-hyundai-accent")
+                ? "bg-white/8 text-muted"
+                : "bg-hyundai-accent/15 text-hyundai-accent")
             }
           >
             <span
@@ -46,7 +46,7 @@ function QuestionCard({ q, mine }: { q: Question; mine: boolean }) {
             {mine ? "나" : q.nickname}
           </span>
         </div>
-        <span className="text-[10px] text-muted/70">{formatTime(q.ts)}</span>
+        <span className="text-[10px] text-muted/60">{formatTime(q.ts)}</span>
       </header>
       <p
         className={
@@ -82,7 +82,7 @@ export function QuestionList({ pending, answered, myUserId, loading }: Props) {
   if (pending.length === 0 && answered.length === 0) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center px-8 text-center">
-        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-hyundai-soft text-hyundai">
+        <div className="ax-glow-cyan flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-hyundai-accent/25 to-[#7c3aed]/25 text-hyundai-accent ring-1 ring-white/10">
           <svg
             viewBox="0 0 24 24"
             className="h-6 w-6"
@@ -97,7 +97,7 @@ export function QuestionList({ pending, answered, myUserId, loading }: Props) {
             <line x1="12" y1="17" x2="12" y2="17.01" />
           </svg>
         </div>
-        <p className="mt-3 text-sm font-medium text-foreground">
+        <p className="mt-3 text-sm font-semibold text-foreground">
           아직 등록된 질문이 없어요
         </p>
         <p className="mt-1 text-sm text-muted">발표자에게 첫 질문을 남겨보세요</p>
@@ -113,11 +113,11 @@ export function QuestionList({ pending, answered, myUserId, loading }: Props) {
         ))}
         {answered.length > 0 ? (
           <div className="mt-4 mb-1 flex items-center gap-2">
-            <span className="h-px flex-1 bg-line" />
+            <span className="h-px flex-1 bg-white/10" />
             <span className="text-[10px] font-semibold tracking-[0.22em] text-muted">
               답변완료 · {answered.length}
             </span>
-            <span className="h-px flex-1 bg-line" />
+            <span className="h-px flex-1 bg-white/10" />
           </div>
         ) : null}
         {answered.map((q) => (

@@ -16,14 +16,14 @@ function formatTime(ts: number): string {
 
 function colorFromId(id: string): string {
   const palette = [
-    "#0ea5e9",
-    "#22c55e",
-    "#f59e0b",
-    "#ef4444",
-    "#a855f7",
-    "#06b6d4",
-    "#ec4899",
-    "#14b8a6",
+    "#38bdf8",
+    "#34d399",
+    "#fbbf24",
+    "#fb7185",
+    "#c084fc",
+    "#22d3ee",
+    "#f472b6",
+    "#2dd4bf",
   ];
   let hash = 0;
   for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) | 0;
@@ -58,7 +58,7 @@ export function ChatMessageList({ messages, myUserId, loading }: Props) {
   if (messages.length === 0) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center px-8 text-center">
-        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-hyundai-soft text-hyundai">
+        <div className="ax-glow-cyan flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-hyundai-accent/25 to-[#7c3aed]/25 text-hyundai-accent ring-1 ring-white/10">
           <svg
             viewBox="0 0 24 24"
             className="h-6 w-6"
@@ -71,7 +71,7 @@ export function ChatMessageList({ messages, myUserId, loading }: Props) {
             <path d="M21 11.5a8.38 8.38 0 0 1-9 8.4 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-4.7A8.38 8.38 0 0 1 3 11.5a8.5 8.5 0 1 1 18 0z" />
           </svg>
         </div>
-        <p className="mt-3 text-sm font-medium text-foreground">
+        <p className="mt-3 text-sm font-semibold text-foreground">
           아직 채팅이 없어요
         </p>
         <p className="mt-1 text-sm text-muted">첫 메시지를 남겨보세요!</p>
@@ -114,18 +114,18 @@ export function ChatMessageList({ messages, myUserId, loading }: Props) {
               >
                 {!sameAuthor ? (
                   <div className="mb-1 flex items-center gap-1.5 px-1 text-[11px]">
-                    <span className="font-semibold text-foreground">
+                    <span className="font-semibold text-foreground/90">
                       {mine ? "나" : m.nickname}
                     </span>
-                    <span className="text-muted/70">{formatTime(m.ts)}</span>
+                    <span className="text-muted/60">{formatTime(m.ts)}</span>
                   </div>
                 ) : null}
                 <div
                   className={
-                    "whitespace-pre-wrap break-words px-3.5 py-2 text-[14.5px] leading-relaxed " +
+                    "whitespace-pre-wrap break-words px-3.5 py-2 text-[14.5px] leading-relaxed backdrop-blur " +
                     (mine
-                      ? "rounded-2xl rounded-tr-md bg-hyundai text-white shadow-sm shadow-hyundai/15"
-                      : "rounded-2xl rounded-tl-md bg-surface text-foreground border border-line-soft")
+                      ? "rounded-2xl rounded-tr-md bg-gradient-to-br from-hyundai-accent to-[#4a7dff] text-white shadow-lg shadow-hyundai-accent/25"
+                      : "rounded-2xl rounded-tl-md bg-white/8 text-foreground border border-white/10")
                   }
                 >
                   {m.text}

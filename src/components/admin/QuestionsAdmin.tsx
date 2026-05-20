@@ -34,8 +34,8 @@ function Row({
       className={
         "rounded-2xl px-4 py-3 transition-all " +
         (q.answered
-          ? "border border-line-soft bg-background/60"
-          : "border border-line-soft bg-surface shadow-sm")
+          ? "border border-white/5 bg-white/[0.02]"
+          : "ax-card")
       }
     >
       <div className="flex items-center justify-between text-xs">
@@ -76,8 +76,8 @@ function Row({
           className={
             "rounded-xl px-3 py-1.5 text-xs font-semibold transition-all active:scale-95 disabled:opacity-50 " +
             (q.answered
-              ? "border border-line bg-surface text-foreground hover:bg-background"
-              : "bg-hyundai text-white shadow-md shadow-hyundai/20 hover:bg-hyundai-dark")
+              ? "ax-btn-glass text-foreground"
+              : "ax-btn-primary text-white")
           }
         >
           {q.answered ? "대기중으로" : "답변완료"}
@@ -90,7 +90,7 @@ function Row({
               void wrap(onDelete);
             }
           }}
-          className="rounded-xl border border-red-200 bg-surface px-3 py-1.5 text-xs font-semibold text-red-600 transition-all hover:bg-red-50 active:scale-95 disabled:opacity-50"
+          className="rounded-xl border border-red-400/30 bg-red-500/10 px-3 py-1.5 text-xs font-semibold text-red-300 transition-all hover:bg-red-500/20 active:scale-95 disabled:opacity-50"
         >
           삭제
         </button>

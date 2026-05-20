@@ -30,7 +30,7 @@ export function ChatComposer({ onSend }: Props) {
         e.preventDefault();
         void handleSend();
       }}
-      className="border-t border-line-soft bg-surface/95 px-3 pt-2.5 pb-3 backdrop-blur"
+      className="ax-glass-strong border-t border-line px-3 pt-2.5 pb-3"
     >
       <div className="flex items-end gap-2">
         <textarea
@@ -45,17 +45,14 @@ export function ChatComposer({ onSend }: Props) {
           rows={1}
           maxLength={500}
           placeholder="메시지를 입력하세요"
-          className="ax-scroll max-h-32 min-h-[46px] flex-1 resize-none rounded-2xl border border-line bg-background px-4 py-2.5 leading-relaxed outline-none transition-colors focus:border-hyundai focus:bg-surface focus:ring-4 focus:ring-hyundai/10"
+          className="ax-input ax-scroll max-h-32 min-h-[46px] flex-1 resize-none rounded-2xl px-4 py-2.5 leading-relaxed"
         />
         <button
           type="submit"
           disabled={!canSend}
           aria-label="전송"
           className={
-            "flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-full transition-all " +
-            (canSend
-              ? "bg-hyundai text-white shadow-md shadow-hyundai/25 active:scale-95"
-              : "bg-line text-muted")
+            "ax-btn-primary flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-full"
           }
         >
           <svg

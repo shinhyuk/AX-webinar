@@ -49,7 +49,7 @@ export function StatusTab({ identity, active }: Props) {
             </p>
           </div>
           {mine ? (
-            <span className="rounded-full bg-hyundai-soft px-2.5 py-1 text-[11px] font-semibold text-hyundai">
+            <span className="rounded-full bg-hyundai-accent/15 px-2.5 py-1 text-[11px] font-semibold text-hyundai-accent ring-1 ring-hyundai-accent/25">
               참여완료
             </span>
           ) : null}
@@ -65,10 +65,10 @@ export function StatusTab({ identity, active }: Props) {
                 onClick={() => void handleSelect(k)}
                 aria-pressed={isMine}
                 className={
-                  "group relative flex flex-col items-center justify-center gap-1.5 overflow-hidden rounded-2xl px-3 py-5 text-sm font-semibold transition-all active:scale-[0.98] " +
+                  "group relative flex flex-col items-center justify-center gap-1.5 overflow-hidden rounded-2xl px-3 py-5 text-sm font-bold transition-all active:scale-[0.98] " +
                   (isMine
-                    ? "text-white shadow-lg ring-2 ring-white/40 ring-offset-2 ring-offset-surface"
-                    : "border border-line bg-background text-foreground hover:border-hyundai/30 hover:bg-surface")
+                    ? "text-white shadow-xl ring-2 ring-white/50"
+                    : "ax-btn-glass text-foreground")
                 }
                 style={isMine ? { backgroundImage: STATUS_GRADIENTS[k] } : undefined}
               >
@@ -118,7 +118,7 @@ export function StatusTab({ identity, active }: Props) {
       </div>
 
       {error ? (
-        <p className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-xs font-medium text-red-700">
+        <p className="mt-3 rounded-xl border border-red-400/20 bg-red-500/10 px-3 py-2 text-xs font-medium text-red-300">
           {error}
         </p>
       ) : null}

@@ -4,7 +4,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "AX 웨비나 | 현대오토에버",
   description:
-    "현대오토에버 HT AX추진TFT가 진행하는 AX 웨비나 실시간 참여 페이지",
+    "현대오토에버 HR AX추진TFT가 진행하는 AX 웨비나 실시간 참여 페이지",
 };
 
 export const viewport: Viewport = {
@@ -23,6 +23,11 @@ export default function RootLayout({
   return (
     <html lang="ko" className="h-full antialiased">
       <head>
+        <link
+          rel="stylesheet"
+          as="style"
+          href="https://cdn.jsdelivr.net/gh/wanteddev/wanted-sans@v1.0.4/packages/wanted-sans/fonts/webfontkit/variable/split/WantedSansVariable.min.css"
+        />
         <link
           rel="stylesheet"
           as="style"
