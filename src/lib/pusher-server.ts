@@ -22,6 +22,7 @@ export const CH = {
   questions: "questions",
   reactions: "reactions",
   admin: "admin",
+  presence: "presence-webinar",
 } as const;
 
 export const EV = {

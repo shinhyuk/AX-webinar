@@ -4,6 +4,7 @@ import { useState } from "react";
 import { AppHeader } from "@/components/ui/AppHeader";
 import { ChatTab } from "@/components/participant/ChatTab";
 import { NicknameModal } from "@/components/participant/NicknameModal";
+import { PresenceTracker } from "@/components/participant/PresenceTracker";
 import { QnATab } from "@/components/participant/QnATab";
 import { StatusTab } from "@/components/participant/StatusTab";
 import { TabBar, type TabKey } from "@/components/participant/TabBar";
@@ -20,6 +21,7 @@ export default function Home() {
       <main className="relative flex-1 overflow-hidden pb-[calc(env(safe-area-inset-bottom)+84px)]">
         {ready && identity ? (
           <>
+            <PresenceTracker identity={identity} />
             <ChatTab identity={identity} active={tab === "chat"} />
             <QnATab identity={identity} active={tab === "qna"} />
             <StatusTab identity={identity} active={tab === "status"} />
