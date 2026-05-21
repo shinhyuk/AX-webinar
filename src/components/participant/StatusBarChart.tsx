@@ -18,9 +18,9 @@ type Props = {
 
 export function StatusBarChart({ counts, total, mine, size = "sm" }: Props) {
   const lg = size === "lg";
-  const barHeight = lg ? "h-6" : "h-2.5";
+  const barHeight = lg ? "h-4" : "h-2.5";
   return (
-    <ul className={"flex flex-col " + (lg ? "gap-5" : "gap-3.5")}>
+    <ul className={"flex flex-col " + (lg ? "gap-3" : "gap-3.5")}>
       {STATUS_KEYS.map((k) => {
         const n = counts[k];
         const pct = total > 0 ? Math.round((n / total) * 100) : 0;
