@@ -38,11 +38,11 @@ function Row({
           : "ax-card")
       }
     >
-      <div className="flex items-center justify-between text-xs">
-        <div className="flex items-center gap-1.5">
+      <div className="flex items-center justify-between text-base">
+        <div className="flex items-center gap-2">
           <span
             className={
-              "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold " +
+              "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-base font-semibold " +
               (q.answered
                 ? "bg-line text-muted"
                 : "bg-hyundai-accent/12 text-hyundai-accent")
@@ -50,19 +50,21 @@ function Row({
           >
             <span
               className={
-                "h-1.5 w-1.5 rounded-full " +
+                "h-2 w-2 rounded-full " +
                 (q.answered ? "bg-muted" : "bg-hyundai-accent animate-pulse")
               }
             />
             {q.answered ? "답변완료" : "대기중"}
           </span>
-          <span className="font-medium text-foreground/80">{q.nickname}</span>
+          <span className="text-xl font-medium text-foreground/80">
+            {q.nickname}
+          </span>
         </div>
-        <span className="text-[10px] text-muted/70">{formatTime(q.ts)}</span>
+        <span className="text-base text-muted/70">{formatTime(q.ts)}</span>
       </div>
       <p
         className={
-          "mt-2 whitespace-pre-wrap break-words text-[14px] leading-relaxed " +
+          "mt-2 whitespace-pre-wrap break-words text-[63px] leading-snug " +
           (q.answered ? "text-muted" : "text-foreground")
         }
       >
