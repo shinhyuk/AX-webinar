@@ -17,18 +17,26 @@ type Props = {
 };
 
 export function StatusBarChart({ counts, total, mine, size = "sm" }: Props) {
-  const barHeight = size === "lg" ? "h-3.5" : "h-2.5";
+  const lg = size === "lg";
+  const barHeight = lg ? "h-6" : "h-2.5";
   return (
-    <ul className="flex flex-col gap-3.5">
+    <ul className={"flex flex-col " + (lg ? "gap-5" : "gap-3.5")}>
       {STATUS_KEYS.map((k) => {
         const n = counts[k];
         const pct = total > 0 ? Math.round((n / total) * 100) : 0;
         const isMine = mine === k;
         return (
           <li key={k}>
-            <div className="flex items-center justify-between text-[13px]">
+            <div
+              className={
+                "flex items-center justify-between " +
+                (lg ? "text-[28px]" : "text-[13px]")
+              }
+            >
               <span className="flex items-center gap-2">
-                <span className="text-base">{STATUS_EMOJI[k]}</span>
+                <span className={lg ? "text-4xl" : "text-base"}>
+                  {STATUS_EMOJI[k]}
+                </span>
                 <span className="font-medium text-foreground">
                   {STATUS_LABELS[k]}
                 </span>
@@ -40,7 +48,9 @@ export function StatusBarChart({ counts, total, mine, size = "sm" }: Props) {
               </span>
               <span className="tabular-nums text-muted">
                 <span className="font-bold text-foreground">{pct}%</span>
-                <span className="ml-1 text-[11px]">· {n}명</span>
+                <span className={"ml-1 " + (lg ? "text-[20px]" : "text-[11px]")}>
+                  · {n}명
+                </span>
               </span>
             </div>
             <div

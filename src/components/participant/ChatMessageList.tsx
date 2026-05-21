@@ -102,12 +102,12 @@ export function ChatMessageList({
               }
             >
               {!mine ? (
-                <div className={(large ? "w-10" : "w-7") + " shrink-0"}>
+                <div className={(large ? "w-14" : "w-7") + " shrink-0"}>
                   {!sameAuthor ? (
                     <div
                       className={
                         "flex items-center justify-center rounded-full font-bold text-white " +
-                        (large ? "h-10 w-10 text-base" : "h-7 w-7 text-[11px]")
+                        (large ? "h-14 w-14 text-2xl" : "h-7 w-7 text-[11px]")
                       }
                       style={{ backgroundColor: colorFromId(m.userId) }}
                     >
@@ -126,7 +126,7 @@ export function ChatMessageList({
                   <div
                     className={
                       "mb-1 flex items-center gap-1.5 px-1 " +
-                      (large ? "text-[17px]" : "text-[11px]")
+                      (large ? "text-[22px]" : "text-[11px]")
                     }
                   >
                     <span className="font-semibold text-foreground/90">
@@ -139,7 +139,7 @@ export function ChatMessageList({
                   className={
                     "whitespace-pre-wrap break-words px-3.5 py-2 backdrop-blur " +
                     (large
-                      ? "text-[30px] leading-snug "
+                      ? "text-[42px] leading-snug "
                       : "text-[14.5px] leading-relaxed ") +
                     (mine
                       ? "rounded-2xl rounded-tr-md bg-gradient-to-br from-hyundai-accent to-[#4a7dff] text-white shadow-lg shadow-hyundai-accent/25"

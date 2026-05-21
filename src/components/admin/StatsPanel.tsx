@@ -14,14 +14,14 @@ export function StatsPanel() {
 
   return (
     <div>
-      <div className="flex items-center gap-2 rounded-2xl bg-hyundai-soft px-4 py-3">
-        <span className="text-xs text-muted">참여 인원</span>
-        <span className="ml-auto text-xl font-bold tabular-nums text-hyundai-accent">
+      <div className="flex items-center gap-2 rounded-2xl bg-hyundai-soft px-5 py-4">
+        <span className="text-[22px] text-muted">참여 인원</span>
+        <span className="ml-auto text-5xl font-bold tabular-nums text-hyundai-accent">
           {total}
-          <span className="ml-0.5 text-xs font-medium">명</span>
+          <span className="ml-0.5 text-2xl font-medium">명</span>
         </span>
       </div>
-      <div className="mt-4">
+      <div className="mt-6">
         <StatusBarChart counts={counts} total={total} size="lg" />
       </div>
     </div>
