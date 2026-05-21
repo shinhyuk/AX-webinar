@@ -63,6 +63,7 @@ export async function POST(req: Request) {
   await getPusherServer().trigger(CH.reactions, EV.reactionsUpdated, {
     counts,
     total,
+    status,
   });
   return NextResponse.json({ counts, total, mine: status });
 }

@@ -9,7 +9,6 @@ export default function AdminPage() {
   return (
     <div className="flex h-[100dvh] flex-col">
       <AppHeader
-        subtitle="Host Console"
         right={
           <span className="rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-semibold tracking-wider text-white backdrop-blur ring-1 ring-white/15">
             HOST

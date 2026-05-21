@@ -102,10 +102,13 @@ export function ChatMessageList({
               }
             >
               {!mine ? (
-                <div className="w-7 shrink-0">
+                <div className={(large ? "w-10" : "w-7") + " shrink-0"}>
                   {!sameAuthor ? (
                     <div
-                      className="flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-bold text-white"
+                      className={
+                        "flex items-center justify-center rounded-full font-bold text-white " +
+                        (large ? "h-10 w-10 text-base" : "h-7 w-7 text-[11px]")
+                      }
                       style={{ backgroundColor: colorFromId(m.userId) }}
                     >
                       {m.nickname.slice(0, 1)}
@@ -123,7 +126,7 @@ export function ChatMessageList({
                   <div
                     className={
                       "mb-1 flex items-center gap-1.5 px-1 " +
-                      (large ? "text-[13px]" : "text-[11px]")
+                      (large ? "text-[17px]" : "text-[11px]")
                     }
                   >
                     <span className="font-semibold text-foreground/90">
@@ -134,8 +137,10 @@ export function ChatMessageList({
                 ) : null}
                 <div
                   className={
-                    "whitespace-pre-wrap break-words px-3.5 py-2 leading-relaxed backdrop-blur " +
-                    (large ? "text-[17px] " : "text-[14.5px] ") +
+                    "whitespace-pre-wrap break-words px-3.5 py-2 backdrop-blur " +
+                    (large
+                      ? "text-[30px] leading-snug "
+                      : "text-[14.5px] leading-relaxed ") +
                     (mine
                       ? "rounded-2xl rounded-tr-md bg-gradient-to-br from-hyundai-accent to-[#4a7dff] text-white shadow-lg shadow-hyundai-accent/25"
                       : "rounded-2xl rounded-tl-md bg-white/8 text-foreground border border-white/10")
