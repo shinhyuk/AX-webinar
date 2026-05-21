@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ChatMonitor } from "./ChatMonitor";
 import { LogoutButton } from "./LogoutButton";
 import { QuestionsAdmin } from "./QuestionsAdmin";
+import { ReactionBurst } from "./ReactionBurst";
 import { ResetButton } from "./ResetButton";
 import { StatsPanel } from "./StatsPanel";
 
@@ -44,19 +45,10 @@ export function AdminDashboard() {
 
   return (
     <div className="flex h-full flex-col px-4 py-4 md:px-6 md:py-5">
-      <div className="mx-auto flex w-full max-w-[1600px] items-center justify-between">
-        <div>
-          <p className="text-[11px] font-semibold tracking-[0.22em] text-hyundai-accent">
-            HOST CONSOLE
-          </p>
-          <h1 className="mt-0.5 text-[20px] font-bold tracking-tight text-foreground">
-            호스트 대시보드
-          </h1>
-        </div>
-        <div className="flex items-center gap-2">
-          <ResetButton />
-          <LogoutButton />
-        </div>
+      <ReactionBurst />
+      <div className="mx-auto flex w-full max-w-[1600px] items-center justify-end gap-2">
+        <ResetButton />
+        <LogoutButton />
       </div>
 
       <div className="mx-auto mt-4 flex w-full max-w-[1600px] gap-1.5">
@@ -90,11 +82,8 @@ export function AdminDashboard() {
 
       <div className="mx-auto mt-3 w-full max-w-[1600px] flex-1 min-h-0">
         {tab === "chat" ? (
-          <div className="grid h-full min-h-0 grid-cols-1 gap-4 lg:grid-cols-[4fr_1fr]">
-            <PanelCard
-              title="실시간 채팅"
-              subtitle="참가자들의 대화를 실시간으로 모니터링합니다"
-            >
+          <div className="grid h-full min-h-0 grid-cols-1 gap-4 lg:grid-cols-[2fr_1fr]">
+            <PanelCard title="실시간 채팅">
               <ChatMonitor />
             </PanelCard>
 
