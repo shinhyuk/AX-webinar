@@ -22,7 +22,7 @@ export async function GET(req: Request) {
     .select(
       "id, created_at, nickname, content, status, classification, answer, approved_at, answered_at",
     )
-    .in("status", ["queued", "approved", "answered"])
+    .in("status", ["queued", "approved", "answered", "rejected"])
     .order("created_at", { ascending: false })
     .limit(100);
 

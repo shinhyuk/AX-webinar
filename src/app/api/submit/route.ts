@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
+import { generateAnswer } from "@/lib/answer";
 import { classify } from "@/lib/classify";
 import { getSupabaseAdmin } from "@/lib/supabase-server";
 
 export const runtime = "nodejs";
+export const maxDuration = 30;
 
 const MAX_LEN = 300;
 
@@ -43,35 +45,56 @@ export async function POST(req: Request) {
     );
   }
 
-  // 설정의 topic_desc 가져오기 (없으면 lib/classify의 기본값)
+  const messageId: string = inserted.id;
+
   const { data: cfg } = await supabase
     .from("config")
-    .select("topic_desc")
+    .select("topic_desc, kb_text")
     .eq("id", 1)
     .maybeSingle();
 
-  let nextStatus: "queued" | "rejected" = "rejected";
+  // Haiku 분류
   let classification = null;
+  let passes = false;
   try {
     const result = await classify(content, cfg?.topic_desc ?? null);
     classification = result;
-    if (result && result.is_question && result.on_topic && result.safe) {
-      nextStatus = "queued";
-    } else {
-      nextStatus = "rejected";
-    }
+    passes = !!(result && result.is_question && result.on_topic && result.safe);
   } catch {
-    // 분류 실패 → 안전을 위해 rejected. (운영자가 콘솔에서 보기는 어렵지만 노출도 안 됨)
-    nextStatus = "rejected";
+    passes = false;
   }
 
+  if (!passes) {
+    await supabase
+      .from("messages")
+      .update({ status: "rejected", classification })
+      .eq("id", messageId);
+    return NextResponse.json({ ok: true, accepted: false });
+  }
+
+  // Sonnet 답변 생성 (KB 컨텍스트 주입)
+  const question = classification?.normalized_question?.trim() || content;
+  let answer: string;
+  try {
+    answer = await generateAnswer(question, cfg?.kb_text ?? null);
+  } catch {
+    return NextResponse.json(
+      { error: "답변 생성에 실패했어요. 잠시 후 다시 시도해주세요." },
+      { status: 500 },
+    );
+  }
+
+  const now = new Date().toISOString();
   await supabase
     .from("messages")
     .update({
-      status: nextStatus,
+      status: "answered",
       classification,
+      answer,
+      approved_at: now,
+      answered_at: now,
     })
-    .eq("id", inserted.id);
+    .eq("id", messageId);
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, accepted: true, id: messageId });
 }

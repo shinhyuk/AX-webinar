@@ -53,96 +53,11 @@ export function ControlConsole() {
         </button>
       </header>
 
-      <main className="grid flex-1 grid-cols-1 gap-4 p-6 lg:grid-cols-[1.4fr_1fr]">
-        <QueuePanel />
+      <main className="grid flex-1 grid-cols-1 gap-4 p-6 lg:grid-cols-[1fr_1fr]">
         <SettingsPanel />
+        <ActivityPanel />
       </main>
     </div>
-  );
-}
-
-function QueuePanel() {
-  const { data, error, isLoading } = useSWR<{ messages: Message[] }>(
-    "/api/control/queue",
-    fetcher,
-    { refreshInterval: 2000, revalidateOnFocus: true },
-  );
-
-  const queued = (data?.messages ?? []).filter((m) => m.status === "queued");
-
-  return (
-    <section className="ax-card flex min-h-0 flex-col overflow-hidden">
-      <header className="flex items-center justify-between border-b border-line px-5 py-3">
-        <div>
-          <h2 className="text-sm font-bold tracking-tight">승인 큐</h2>
-          <p className="mt-0.5 text-[11px] text-muted">
-            분류 통과된 질문이 실시간으로 들어옵니다. 2초마다 갱신
-          </p>
-        </div>
-        <span className="rounded-full bg-accent-dim px-2.5 py-1 text-[11px] font-semibold text-accent">
-          {queued.length}건 대기
-        </span>
-      </header>
-
-      <div className="ax-scroll flex-1 min-h-0 overflow-y-auto p-4">
-        {isLoading ? (
-          <p className="text-sm text-muted">불러오는 중...</p>
-        ) : error ? (
-          <p className="text-sm text-[color:var(--color-danger)]">
-            큐를 불러오지 못했습니다.
-          </p>
-        ) : queued.length === 0 ? (
-          <p className="text-sm text-muted">
-            아직 승인 대기 중인 질문이 없어요.
-          </p>
-        ) : (
-          <ul className="flex flex-col gap-3">
-            {queued.map((m) => (
-              <QueueItem key={m.id} message={m} />
-            ))}
-          </ul>
-        )}
-      </div>
-    </section>
-  );
-}
-
-function QueueItem({ message }: { message: Message }) {
-  return (
-    <li className="rounded-2xl border border-line bg-white/[0.03] p-4">
-      <div className="flex items-center justify-between text-xs">
-        <span className="font-semibold text-foreground/85">
-          {message.nickname?.trim() || "익명"}
-        </span>
-        <span className="text-muted/70 tabular-nums">
-          {formatTime(message.created_at)}
-        </span>
-      </div>
-      <p className="mt-2 whitespace-pre-wrap break-words text-[14px] leading-relaxed">
-        {message.content}
-      </p>
-      {message.classification ? (
-        <details className="mt-3 text-[11px] text-muted">
-          <summary className="cursor-pointer select-none">
-            분류 결과 — {message.classification.reason}
-          </summary>
-          <div className="mt-2 space-y-1 rounded-xl bg-white/[0.02] p-3">
-            <div>
-              <span className="text-muted/70">정규화된 질문:</span>{" "}
-              {message.classification.normalized_question}
-            </div>
-            <div className="text-muted/70">
-              질문={String(message.classification.is_question)} · 주제부합=
-              {String(message.classification.on_topic)} · 안전=
-              {String(message.classification.safe)}
-            </div>
-          </div>
-        </details>
-      ) : null}
-      <p className="mt-3 text-[11px] text-muted/70">
-        승인/기각 버튼은 M3에서 추가됩니다.
-      </p>
-    </li>
   );
 }
 
@@ -228,7 +143,7 @@ function SettingsPanel() {
           <textarea
             value={kbText}
             onChange={(e) => setKbText(e.target.value)}
-            rows={10}
+            rows={12}
             placeholder="HR-AX 소개, 주요 기능, FAQ 등을 자유 텍스트로 붙여넣으세요. 답변은 이 안에서만 생성됩니다."
             className="ax-input ax-scroll mt-1.5 w-full resize-none rounded-xl px-3 py-2 text-sm"
           />
@@ -265,5 +180,92 @@ function SettingsPanel() {
         </div>
       </form>
     </section>
+  );
+}
+
+function ActivityPanel() {
+  const { data, error, isLoading } = useSWR<{ messages: Message[] }>(
+    "/api/control/queue",
+    fetcher,
+    { refreshInterval: 3000 },
+  );
+  const all = data?.messages ?? [];
+  const answered = all.filter((m) => m.status === "answered").length;
+
+  return (
+    <section className="ax-card flex min-h-0 flex-col overflow-hidden">
+      <header className="flex items-center justify-between border-b border-line px-5 py-3">
+        <div>
+          <h2 className="text-sm font-bold tracking-tight">최근 활동</h2>
+          <p className="mt-0.5 text-[11px] text-muted">
+            자동 승인 · 3초마다 갱신
+          </p>
+        </div>
+        <span className="rounded-full bg-accent-dim px-2.5 py-1 text-[11px] font-semibold text-accent">
+          {answered}건 답변 완료
+        </span>
+      </header>
+
+      <div className="ax-scroll flex-1 min-h-0 overflow-y-auto p-4">
+        {isLoading ? (
+          <p className="text-sm text-muted">불러오는 중...</p>
+        ) : error ? (
+          <p className="text-sm text-[color:var(--color-danger)]">
+            활동 로그를 불러오지 못했습니다.
+          </p>
+        ) : all.length === 0 ? (
+          <p className="text-sm text-muted">아직 답변된 질문이 없어요.</p>
+        ) : (
+          <ul className="flex flex-col gap-3">
+            {all.map((m) => (
+              <ActivityItem key={m.id} message={m} />
+            ))}
+          </ul>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function ActivityItem({ message }: { message: Message }) {
+  const statusColor =
+    message.status === "answered"
+      ? "text-accent"
+      : message.status === "rejected"
+        ? "text-[color:var(--color-danger)]"
+        : "text-muted";
+
+  return (
+    <li className="rounded-2xl border border-line bg-white/[0.03] p-3">
+      <div className="flex items-center justify-between text-[11px]">
+        <span className="font-semibold text-foreground/85">
+          {message.nickname?.trim() || "익명"}
+        </span>
+        <span className="tabular-nums text-muted/70">
+          {formatTime(message.created_at)}
+        </span>
+      </div>
+      <p className="mt-1.5 whitespace-pre-wrap break-words text-[13px] leading-relaxed">
+        {message.content}
+      </p>
+      <div className="mt-2 flex items-center gap-2 text-[11px]">
+        <span className={"font-semibold " + statusColor}>
+          {message.status}
+        </span>
+        {message.classification?.reason ? (
+          <span className="text-muted/70">· {message.classification.reason}</span>
+        ) : null}
+      </div>
+      {message.answer ? (
+        <details className="mt-2 text-[12px] text-foreground/80">
+          <summary className="cursor-pointer select-none text-muted">
+            답변 보기
+          </summary>
+          <p className="mt-1.5 whitespace-pre-wrap break-words rounded-xl bg-white/[0.03] p-2.5 leading-relaxed">
+            {message.answer}
+          </p>
+        </details>
+      ) : null}
+    </li>
   );
 }
