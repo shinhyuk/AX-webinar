@@ -1,18 +1,9 @@
-import { AdminDashboard } from "@/components/admin/AdminDashboard";
+import { StageScreen } from "@/components/stage/StageScreen";
 
 export const metadata = {
-  title: "호스트 대시보드 | AX 웨비나",
+  title: "HR-AX 라이브 세미나 — 메인 화면",
 };
 
-export default function AdminPage() {
-  return (
-    <div
-      className="flex h-[100dvh] flex-col bg-background"
-      style={{ paddingTop: "env(safe-area-inset-top)" }}
-    >
-      <main className="flex-1 min-h-0">
-        <AdminDashboard />
-      </main>
-    </div>
-  );
+export default function StagePage() {
+  return <StageScreen />;
 }
