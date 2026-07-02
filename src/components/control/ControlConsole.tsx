@@ -256,9 +256,34 @@ function MessagesPanel() {
     { refreshInterval: 3000 },
   );
   const model: AnswerModel = "opus";
+  const [resetting, setResetting] = useState(false);
+  const [resetError, setResetError] = useState<string | null>(null);
 
   const messages = (data?.messages ?? []).slice().reverse();
   const answered = messages.filter((m) => m.answer).length;
+
+  async function handleReset() {
+    if (resetting) return;
+    if (
+      !window.confirm(
+        "채팅을 전부 삭제할까요? 모든 메시지·질문·답변이 사라지며 되돌릴 수 없습니다.\n(업로드한 PPT와 지식 기반 설정은 그대로 유지됩니다)",
+      )
+    ) {
+      return;
+    }
+    setResetError(null);
+    setResetting(true);
+    try {
+      const res = await fetch("/api/control/reset", { method: "POST" });
+      const j = (await res.json().catch(() => ({}))) as { error?: string };
+      if (!res.ok) throw new Error(j.error ?? "초기화 실패");
+      await mutate();
+    } catch (e) {
+      setResetError(e instanceof Error ? e.message : "초기화 실패");
+    } finally {
+      setResetting(false);
+    }
+  }
 
   return (
     <section className="ax-card flex min-h-0 flex-col overflow-hidden">
@@ -268,10 +293,25 @@ function MessagesPanel() {
           <p className="mt-0.5 text-[11px] text-muted">
             질문은 자동으로 Opus 4.8이 답변합니다 · 필요 시 [재생성]
           </p>
+          {resetError ? (
+            <p className="mt-0.5 text-[11px] text-[color:var(--color-danger)]">
+              {resetError}
+            </p>
+          ) : null}
         </div>
-        <span className="rounded-full bg-accent-dim px-2.5 py-1 text-[11px] font-semibold text-accent">
-          {answered}건 답변
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="rounded-full bg-accent-dim px-2.5 py-1 text-[11px] font-semibold text-accent">
+            {answered}건 답변
+          </span>
+          <button
+            type="button"
+            onClick={handleReset}
+            disabled={resetting}
+            className="ax-btn-danger px-3 py-1 text-[11px]"
+          >
+            {resetting ? "초기화 중..." : "채팅 초기화"}
+          </button>
+        </div>
       </header>
 
       <div className="ax-scroll flex-1 min-h-0 overflow-y-auto p-4">
