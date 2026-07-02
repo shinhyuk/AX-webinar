@@ -4,7 +4,8 @@ export type MessageStatus =
   | "queued"
   | "dismissed"
   | "approved"
-  | "answered";
+  | "answered"
+  | "chat";
 
 export type Classification = {
   is_question: boolean;
@@ -22,6 +23,7 @@ export type Message = {
   status: MessageStatus;
   classification: Classification | null;
   answer: string | null;
+  model: string | null;
   approved_at: string | null;
   answered_at: string | null;
 };
@@ -32,4 +34,18 @@ export type Config = {
   kb_text: string | null;
   topic_desc: string | null;
   updated_at: string | null;
+};
+
+export type AnswerModel = "haiku" | "sonnet" | "opus";
+
+export const ANSWER_MODEL_IDS: Record<AnswerModel, string> = {
+  haiku: "claude-haiku-4-5-20251001",
+  sonnet: "claude-sonnet-5",
+  opus: "claude-opus-4-8",
+};
+
+export const ANSWER_MODEL_LABELS: Record<AnswerModel, string> = {
+  haiku: "Haiku 4.5 (빠름)",
+  sonnet: "Sonnet 5 (기본)",
+  opus: "Opus 4.8 (최고 품질)",
 };

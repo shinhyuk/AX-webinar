@@ -3,7 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
-import type { Config, Message } from "@/lib/types";
+import {
+  ANSWER_MODEL_LABELS,
+  type AnswerModel,
+  type Config,
+  type Message,
+} from "@/lib/types";
 
 const fetcher = async (url: string) => {
   const res = await fetch(url, { cache: "no-store" });
@@ -53,96 +58,11 @@ export function ControlConsole() {
         </button>
       </header>
 
-      <main className="grid flex-1 grid-cols-1 gap-4 p-6 lg:grid-cols-[1.4fr_1fr]">
-        <QueuePanel />
+      <main className="grid flex-1 grid-cols-1 gap-4 p-6 lg:grid-cols-[1fr_1.2fr]">
         <SettingsPanel />
+        <MessagesPanel />
       </main>
     </div>
-  );
-}
-
-function QueuePanel() {
-  const { data, error, isLoading } = useSWR<{ messages: Message[] }>(
-    "/api/control/queue",
-    fetcher,
-    { refreshInterval: 2000, revalidateOnFocus: true },
-  );
-
-  const queued = (data?.messages ?? []).filter((m) => m.status === "queued");
-
-  return (
-    <section className="ax-card flex min-h-0 flex-col overflow-hidden">
-      <header className="flex items-center justify-between border-b border-line px-5 py-3">
-        <div>
-          <h2 className="text-sm font-bold tracking-tight">승인 큐</h2>
-          <p className="mt-0.5 text-[11px] text-muted">
-            분류 통과된 질문이 실시간으로 들어옵니다. 2초마다 갱신
-          </p>
-        </div>
-        <span className="rounded-full bg-accent-dim px-2.5 py-1 text-[11px] font-semibold text-accent">
-          {queued.length}건 대기
-        </span>
-      </header>
-
-      <div className="ax-scroll flex-1 min-h-0 overflow-y-auto p-4">
-        {isLoading ? (
-          <p className="text-sm text-muted">불러오는 중...</p>
-        ) : error ? (
-          <p className="text-sm text-[color:var(--color-danger)]">
-            큐를 불러오지 못했습니다.
-          </p>
-        ) : queued.length === 0 ? (
-          <p className="text-sm text-muted">
-            아직 승인 대기 중인 질문이 없어요.
-          </p>
-        ) : (
-          <ul className="flex flex-col gap-3">
-            {queued.map((m) => (
-              <QueueItem key={m.id} message={m} />
-            ))}
-          </ul>
-        )}
-      </div>
-    </section>
-  );
-}
-
-function QueueItem({ message }: { message: Message }) {
-  return (
-    <li className="rounded-2xl border border-line bg-white/[0.03] p-4">
-      <div className="flex items-center justify-between text-xs">
-        <span className="font-semibold text-foreground/85">
-          {message.nickname?.trim() || "익명"}
-        </span>
-        <span className="text-muted/70 tabular-nums">
-          {formatTime(message.created_at)}
-        </span>
-      </div>
-      <p className="mt-2 whitespace-pre-wrap break-words text-[14px] leading-relaxed">
-        {message.content}
-      </p>
-      {message.classification ? (
-        <details className="mt-3 text-[11px] text-muted">
-          <summary className="cursor-pointer select-none">
-            분류 결과 — {message.classification.reason}
-          </summary>
-          <div className="mt-2 space-y-1 rounded-xl bg-white/[0.02] p-3">
-            <div>
-              <span className="text-muted/70">정규화된 질문:</span>{" "}
-              {message.classification.normalized_question}
-            </div>
-            <div className="text-muted/70">
-              질문={String(message.classification.is_question)} · 주제부합=
-              {String(message.classification.on_topic)} · 안전=
-              {String(message.classification.safe)}
-            </div>
-          </div>
-        </details>
-      ) : null}
-      <p className="mt-3 text-[11px] text-muted/70">
-        승인/기각 버튼은 M3에서 추가됩니다.
-      </p>
-    </li>
   );
 }
 
@@ -151,20 +71,23 @@ function SettingsPanel() {
     "/api/control/config",
     fetcher,
   );
-  const [pptUrl, setPptUrl] = useState("");
   const [kbText, setKbText] = useState("");
   const [topicDesc, setTopicDesc] = useState("");
+  const [pptUrl, setPptUrl] = useState("");
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const seededRef = useRef(false);
 
   useEffect(() => {
     if (!data?.config || seededRef.current) return;
     seededRef.current = true;
-    setPptUrl(data.config.ppt_embed_url ?? "");
     setKbText(data.config.kb_text ?? "");
     setTopicDesc(data.config.topic_desc ?? "");
+    setPptUrl(data.config.ppt_embed_url ?? "");
   }, [data]);
 
   async function handleSave(e: React.FormEvent) {
@@ -195,13 +118,37 @@ function SettingsPanel() {
     }
   }
 
+  async function handlePptUpload(file: File) {
+    setUploadError(null);
+    setUploading(true);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const res = await fetch("/api/control/upload-ppt", {
+        method: "POST",
+        body: form,
+      });
+      const j = (await res.json().catch(() => ({}))) as {
+        embedUrl?: string;
+        error?: string;
+      };
+      if (!res.ok) throw new Error(j.error ?? "업로드 실패");
+      if (j.embedUrl) setPptUrl(j.embedUrl);
+      await mutate();
+    } catch (e) {
+      setUploadError(e instanceof Error ? e.message : "업로드 실패");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
+
   return (
     <section className="ax-card flex min-h-0 flex-col overflow-hidden">
       <header className="border-b border-line px-5 py-3">
-        <h2 className="text-sm font-bold tracking-tight">행사 설정</h2>
-        <p className="mt-0.5 text-[11px] text-muted">
-          분류 기준 · 지식 기반 · PPT 임베드 URL
-        </p>
+        <h2 className="text-sm font-bold tracking-tight">
+          지식 관리 · PPT 업로드
+        </h2>
       </header>
 
       <form
@@ -210,45 +157,84 @@ function SettingsPanel() {
       >
         <div>
           <label className="text-xs font-medium text-muted">
-            주제 설명 (분류 기준)
+            지식 기반 (KB)
+          </label>
+          <p className="mt-0.5 text-[11px] text-muted/70">
+            답변은 이 안의 내용에서만 생성됩니다.
+          </p>
+          <textarea
+            value={kbText}
+            onChange={(e) => setKbText(e.target.value)}
+            rows={12}
+            placeholder="HR-AX 소개, 주요 기능, FAQ 등을 자유 텍스트로 붙여넣으세요."
+            className="ax-input ax-scroll mt-1.5 w-full resize-none rounded-xl px-3 py-2 text-sm"
+          />
+        </div>
+
+        <div>
+          <label className="text-xs font-medium text-muted">
+            주제 설명 (선택)
           </label>
           <textarea
             value={topicDesc}
             onChange={(e) => setTopicDesc(e.target.value)}
-            rows={3}
-            placeholder="예: 현대오토에버 HR-AX 도입 및 인사 AI 활용에 관한 질문"
+            rows={2}
+            placeholder="예: 현대오토에버 HR-AX 도입 및 인사 AI 활용"
             className="ax-input ax-scroll mt-1.5 w-full resize-none rounded-xl px-3 py-2 text-sm"
           />
         </div>
 
-        <div>
+        <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
           <label className="text-xs font-medium text-muted">
-            지식 기반 (KB)
+            PPT 업로드 (.pptx / .ppt)
           </label>
-          <textarea
-            value={kbText}
-            onChange={(e) => setKbText(e.target.value)}
-            rows={10}
-            placeholder="HR-AX 소개, 주요 기능, FAQ 등을 자유 텍스트로 붙여넣으세요. 답변은 이 안에서만 생성됩니다."
-            className="ax-input ax-scroll mt-1.5 w-full resize-none rounded-xl px-3 py-2 text-sm"
-          />
+          <p className="mt-0.5 text-[11px] text-muted/70">
+            업로드하면 Microsoft Office Online 뷰어로 자동 임베드됩니다. 애니메이션 그대로 보존.
+          </p>
+          <div className="mt-3 flex items-center gap-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".pptx,.ppt"
+              disabled={uploading}
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) void handlePptUpload(f);
+              }}
+              className="block w-full text-xs text-foreground/80 file:mr-3 file:cursor-pointer file:rounded-lg file:border-0 file:bg-accent-dim file:px-3 file:py-1.5 file:text-[12px] file:font-semibold file:text-accent hover:file:brightness-110"
+            />
+          </div>
+          {uploading ? (
+            <p className="mt-2 text-[11px] text-accent">업로드 중...</p>
+          ) : null}
+          {uploadError ? (
+            <p className="mt-2 text-[11px] text-[color:var(--color-danger)]">
+              {uploadError}
+            </p>
+          ) : null}
+          {pptUrl ? (
+            <details className="mt-2 text-[11px] text-muted">
+              <summary className="cursor-pointer select-none">
+                현재 임베드 URL 보기
+              </summary>
+              <p className="mt-1 whitespace-pre-wrap break-all rounded-lg bg-white/[0.03] p-2 text-foreground/70">
+                {pptUrl}
+              </p>
+            </details>
+          ) : null}
         </div>
 
         <div>
           <label className="text-xs font-medium text-muted">
-            PPT 임베드 URL
+            또는 임베드 URL 직접 입력
           </label>
           <input
             type="url"
             value={pptUrl}
             onChange={(e) => setPptUrl(e.target.value)}
-            placeholder="OneDrive/SharePoint → 공유 → 임베드의 iframe src"
+            placeholder="OneDrive/SharePoint 임베드 URL"
             className="ax-input mt-1.5 w-full rounded-xl px-3 py-2 text-sm"
           />
-          <p className="mt-1.5 text-[11px] text-muted/70">
-            웹 뷰어는 일부 애니메이션을 지원하지 않을 수 있습니다. 실제 파일로
-            사전 테스트하세요.
-          </p>
         </div>
 
         <div className="flex items-center justify-between pt-1">
@@ -260,10 +246,161 @@ function SettingsPanel() {
             ) : null}
           </span>
           <button type="submit" disabled={saving} className="ax-btn px-4 py-2">
-            {saving ? "저장 중..." : "저장"}
+            {saving ? "저장 중..." : "설정 저장"}
           </button>
         </div>
       </form>
     </section>
+  );
+}
+
+function MessagesPanel() {
+  const { data, error, isLoading, mutate } = useSWR<{ messages: Message[] }>(
+    "/api/control/queue",
+    fetcher,
+    { refreshInterval: 3000 },
+  );
+  const [model, setModel] = useState<AnswerModel>("sonnet");
+
+  const messages = (data?.messages ?? []).slice().reverse();
+
+  return (
+    <section className="ax-card flex min-h-0 flex-col overflow-hidden">
+      <header className="flex items-center justify-between gap-3 border-b border-line px-5 py-3">
+        <div>
+          <h2 className="text-sm font-bold tracking-tight">실시간 채팅</h2>
+          <p className="mt-0.5 text-[11px] text-muted">
+            메시지 클릭 후 [AI 답변]으로 지식 기반에서 답변 생성
+          </p>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <label className="text-[11px] text-muted">모델</label>
+          <select
+            value={model}
+            onChange={(e) => setModel(e.target.value as AnswerModel)}
+            className="ax-input rounded-lg px-2 py-1 text-[12px]"
+          >
+            {(Object.keys(ANSWER_MODEL_LABELS) as AnswerModel[]).map((m) => (
+              <option key={m} value={m}>
+                {ANSWER_MODEL_LABELS[m]}
+              </option>
+            ))}
+          </select>
+        </div>
+      </header>
+
+      <div className="ax-scroll flex-1 min-h-0 overflow-y-auto p-4">
+        {isLoading ? (
+          <p className="text-sm text-muted">불러오는 중...</p>
+        ) : error ? (
+          <p className="text-sm text-[color:var(--color-danger)]">
+            불러오지 못했습니다.
+          </p>
+        ) : messages.length === 0 ? (
+          <p className="text-sm text-muted">아직 메시지가 없어요.</p>
+        ) : (
+          <ul className="flex flex-col gap-3">
+            {messages.map((m) => (
+              <MessageRow
+                key={m.id}
+                message={m}
+                model={model}
+                onAnswered={() => mutate()}
+              />
+            ))}
+          </ul>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function MessageRow({
+  message,
+  model,
+  onAnswered,
+}: {
+  message: Message;
+  model: AnswerModel;
+  onAnswered: () => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const hasAnswer = !!message.answer;
+
+  async function handleAnswer() {
+    if (busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/control/answer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messageId: message.id, model }),
+      });
+      const j = (await res.json().catch(() => ({}))) as { error?: string };
+      if (!res.ok) throw new Error(j.error ?? "답변 생성 실패");
+      onAnswered();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "답변 생성 실패");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <li className="rounded-2xl border border-line bg-white/[0.03] p-3">
+      <div className="flex items-center justify-between text-[11px]">
+        <span className="font-semibold text-foreground/85">
+          {message.nickname?.trim() || "익명"}
+        </span>
+        <span className="tabular-nums text-muted/70">
+          {formatTime(message.created_at)}
+        </span>
+      </div>
+      <p className="mt-1.5 whitespace-pre-wrap break-words text-[13px] leading-relaxed">
+        {message.content}
+      </p>
+
+      <div className="mt-2.5 flex items-center justify-between gap-2">
+        <span className="text-[11px] text-muted/70">
+          {hasAnswer ? (
+            <span className="text-accent">답변 완료</span>
+          ) : (
+            <span>미답변</span>
+          )}
+          {message.model ? (
+            <span className="ml-2 text-muted/50">· {message.model}</span>
+          ) : null}
+        </span>
+        <button
+          type="button"
+          onClick={handleAnswer}
+          disabled={busy}
+          className={
+            hasAnswer
+              ? "ax-btn-ghost px-3 py-1 text-[11px]"
+              : "ax-btn px-3 py-1 text-[11px]"
+          }
+        >
+          {busy ? "생성 중..." : hasAnswer ? "재생성" : "AI 답변"}
+        </button>
+      </div>
+
+      {hasAnswer ? (
+        <div className="mt-2.5 rounded-xl border border-cyan-400/15 bg-cyan-400/5 p-2.5">
+          <p className="text-[11px] font-semibold text-accent">HR-AX 답변</p>
+          <p className="mt-1 whitespace-pre-wrap break-words text-[13px] leading-relaxed">
+            {message.answer}
+          </p>
+        </div>
+      ) : null}
+
+      {error ? (
+        <p className="mt-2 text-[11px] text-[color:var(--color-danger)]">
+          {error}
+        </p>
+      ) : null}
+    </li>
   );
 }
