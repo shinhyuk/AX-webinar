@@ -56,6 +56,14 @@ export function useAnsweredMessages() {
           table: "messages",
         },
         (payload) => {
+          if (payload.eventType === "DELETE") {
+            const old = payload.old as { id?: string } | null;
+            if (old?.id) {
+              seenRef.current.delete(old.id);
+              setMessages((prev) => prev.filter((m) => m.id !== old.id));
+            }
+            return;
+          }
           const row = (payload.new ?? payload.old) as FeedMessage | null;
           if (!row || !row.id) return;
           if (row.status && row.status !== "chat" && row.status !== "answered") {
