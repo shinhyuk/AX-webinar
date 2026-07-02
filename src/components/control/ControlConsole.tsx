@@ -266,7 +266,7 @@ function MessagesPanel() {
     if (resetting) return;
     if (
       !window.confirm(
-        "채팅을 전부 삭제할까요? 모든 메시지·질문·답변이 사라지며 되돌릴 수 없습니다.",
+        "채팅을 전부 삭제할까요? 모든 메시지·질문·답변이 사라지며 되돌릴 수 없습니다.\n(업로드한 PPT와 지식 기반 설정은 그대로 유지됩니다)",
       )
     ) {
       return;
