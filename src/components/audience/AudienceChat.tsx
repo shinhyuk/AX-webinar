@@ -125,11 +125,10 @@ function NicknameModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-0 backdrop-blur-md sm:items-center sm:p-4">
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/70 p-4 pt-[8vh] backdrop-blur-md sm:items-center sm:pt-4">
       <form
         onSubmit={handleSubmit}
-        className="ax-card ax-fade-in w-full rounded-t-3xl px-6 pt-7 pb-6 sm:max-w-sm sm:rounded-3xl"
-        style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 1.5rem)" }}
+        className="ax-card ax-fade-in w-full max-w-sm rounded-3xl px-6 pt-7 pb-6"
       >
         <div className="flex items-center gap-2 text-accent">
           <span className="inline-block h-2 w-2 rounded-full bg-accent" />
