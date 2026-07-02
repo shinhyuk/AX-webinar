@@ -74,6 +74,9 @@ export async function POST(req: Request) {
           "opus",
         );
 
+        // 지식 기반에 없어 답변 불가한 질문은 답변을 아예 남기지 않는다
+        if (result.usedFallback) return;
+
         await supabase
           .from("messages")
           .update({

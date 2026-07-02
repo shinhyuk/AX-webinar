@@ -56,27 +56,29 @@ export function StageScreen() {
   }, [messages]);
 
   return (
-    <div className="grid h-[100dvh] grid-cols-[7fr_3fr] gap-3 bg-background p-3">
-      <PptPanel url={cfg?.ppt_embed_url ?? null} />
+    <div className="flex h-[100dvh] flex-col gap-3 bg-background p-3">
+      <TopQuestions messages={messages} />
 
-      <section className="ax-card flex min-h-0 flex-col overflow-hidden">
-        <header className="flex items-start justify-between border-b border-line px-5 py-3">
-          <div>
-            <p className="text-[11px] font-semibold tracking-[0.22em] text-accent">
-              LIVE CHAT
-            </p>
-            <h2 className="mt-0.5 text-xl font-bold tracking-tight">
-              실시간 채팅
-            </h2>
-          </div>
-          <a
-            href="/report"
-            className="ax-btn-ghost mt-1 rounded-xl px-3 py-1.5 text-[12px] font-semibold"
-          >
-            질문 보고서
-          </a>
-        </header>
-        <Leaderboard messages={messages} />
+      <div className="grid min-h-0 flex-1 grid-cols-[7fr_3fr] gap-3">
+        <PptPanel url={cfg?.ppt_embed_url ?? null} />
+
+        <section className="ax-card flex min-h-0 flex-col overflow-hidden">
+          <header className="flex items-start justify-between border-b border-line px-5 py-3">
+            <div>
+              <p className="text-[11px] font-semibold tracking-[0.22em] text-accent">
+                LIVE CHAT
+              </p>
+              <h2 className="mt-0.5 text-xl font-bold tracking-tight">
+                실시간 채팅
+              </h2>
+            </div>
+            <a
+              href="/report"
+              className="ax-btn-ghost mt-1 rounded-xl px-3 py-1.5 text-[12px] font-semibold"
+            >
+              질문 보고서
+            </a>
+          </header>
         <div className="ax-scroll flex-1 min-h-0 overflow-y-auto px-4 py-4">
           {loading ? (
             <p className="text-base text-muted">불러오는 중...</p>
@@ -107,7 +109,8 @@ export function StageScreen() {
           )}
           <div ref={endRef} />
         </div>
-      </section>
+        </section>
+      </div>
     </div>
   );
 }
@@ -140,33 +143,43 @@ export function rankQuestioners(messages: FeedMessage[]) {
   );
 }
 
-function Leaderboard({ messages }: { messages: FeedMessage[] }) {
-  const top = rankQuestioners(messages).slice(0, 3);
+function TopQuestions({ messages }: { messages: FeedMessage[] }) {
+  const top = messages
+    .filter(
+      (m) => m.classification?.is_question && (m.classification.score ?? 0) > 0,
+    )
+    .sort(
+      (a, b) =>
+        (b.classification?.score ?? 0) - (a.classification?.score ?? 0),
+    )
+    .slice(0, 3);
   if (top.length === 0) return null;
   return (
-    <div className="border-b border-line bg-white/[0.02] px-4 py-2.5">
-      <p className="mb-1.5 text-[10px] font-semibold tracking-[0.2em] text-accent">
-        TOP 질문자
-      </p>
-      <ol className="flex flex-col gap-1">
-        {top.map((t, i) => (
-          <li
-            key={t.nickname}
-            className="flex items-baseline justify-between gap-2 text-[14px]"
-          >
-            <span className="flex items-baseline gap-1.5">
-              <span>{MEDALS[i]}</span>
-              <span className="font-semibold">{t.nickname}</span>
-              <span className="text-[11px] text-muted/70">
-                질문 {t.count}건
+    <div className="grid shrink-0 grid-cols-3 gap-3">
+      {top.map((q, i) => (
+        <div
+          key={q.id}
+          className={
+            "ax-card flex items-center gap-3 px-4 py-2.5 " +
+            (i === 0 ? "ring-1 ring-accent/40" : "")
+          }
+        >
+          <span className="text-2xl">{MEDALS[i]}</span>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-baseline gap-2">
+              <span className="text-[13px] font-semibold">
+                {q.nickname?.trim() || "익명"}
               </span>
-            </span>
-            <span className="font-bold tabular-nums text-accent">
-              {t.total}점
-            </span>
-          </li>
-        ))}
-      </ol>
+              <span className="text-[15px] font-bold tabular-nums text-accent">
+                {q.classification?.score}점
+              </span>
+            </div>
+            <p className="truncate text-[14px] text-foreground/85">
+              {q.content}
+            </p>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
