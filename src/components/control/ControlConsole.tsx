@@ -3,12 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
-import {
-  ANSWER_MODEL_LABELS,
-  type AnswerModel,
-  type Config,
-  type Message,
-} from "@/lib/types";
+import type { AnswerModel, Config, Message } from "@/lib/types";
 
 const fetcher = async (url: string) => {
   const res = await fetch(url, { cache: "no-store" });
@@ -260,9 +255,10 @@ function MessagesPanel() {
     fetcher,
     { refreshInterval: 3000 },
   );
-  const [model, setModel] = useState<AnswerModel>("sonnet");
+  const model: AnswerModel = "opus";
 
   const messages = (data?.messages ?? []).slice().reverse();
+  const answered = messages.filter((m) => m.answer).length;
 
   return (
     <section className="ax-card flex min-h-0 flex-col overflow-hidden">
@@ -270,23 +266,12 @@ function MessagesPanel() {
         <div>
           <h2 className="text-sm font-bold tracking-tight">실시간 채팅</h2>
           <p className="mt-0.5 text-[11px] text-muted">
-            메시지 클릭 후 [AI 답변]으로 지식 기반에서 답변 생성
+            질문은 자동으로 Opus 4.8이 답변합니다 · 필요 시 [재생성]
           </p>
         </div>
-        <div className="flex items-center gap-1.5">
-          <label className="text-[11px] text-muted">모델</label>
-          <select
-            value={model}
-            onChange={(e) => setModel(e.target.value as AnswerModel)}
-            className="ax-input rounded-lg px-2 py-1 text-[12px]"
-          >
-            {(Object.keys(ANSWER_MODEL_LABELS) as AnswerModel[]).map((m) => (
-              <option key={m} value={m}>
-                {ANSWER_MODEL_LABELS[m]}
-              </option>
-            ))}
-          </select>
-        </div>
+        <span className="rounded-full bg-accent-dim px-2.5 py-1 text-[11px] font-semibold text-accent">
+          {answered}건 답변
+        </span>
       </header>
 
       <div className="ax-scroll flex-1 min-h-0 overflow-y-auto p-4">
@@ -351,8 +336,15 @@ function MessageRow({
   return (
     <li className="rounded-2xl border border-line bg-white/[0.03] p-3">
       <div className="flex items-center justify-between text-[11px]">
-        <span className="font-semibold text-foreground/85">
-          {message.nickname?.trim() || "익명"}
+        <span className="flex items-center gap-1.5">
+          <span className="font-semibold text-foreground/85">
+            {message.nickname?.trim() || "익명"}
+          </span>
+          {message.classification?.is_question ? (
+            <span className="rounded-full bg-accent-dim px-1.5 py-px text-[10px] font-bold text-accent">
+              질문
+            </span>
+          ) : null}
         </span>
         <span className="tabular-nums text-muted/70">
           {formatTime(message.created_at)}
@@ -366,8 +358,10 @@ function MessageRow({
         <span className="text-[11px] text-muted/70">
           {hasAnswer ? (
             <span className="text-accent">답변 완료</span>
+          ) : message.classification?.is_question ? (
+            <span className="text-accent/70">답변 생성 대기 중...</span>
           ) : (
-            <span>미답변</span>
+            <span>일반 채팅</span>
           )}
           {message.model ? (
             <span className="ml-2 text-muted/50">· {message.model}</span>
@@ -377,13 +371,9 @@ function MessageRow({
           type="button"
           onClick={handleAnswer}
           disabled={busy}
-          className={
-            hasAnswer
-              ? "ax-btn-ghost px-3 py-1 text-[11px]"
-              : "ax-btn px-3 py-1 text-[11px]"
-          }
+          className="ax-btn-ghost px-3 py-1 text-[11px]"
         >
-          {busy ? "생성 중..." : hasAnswer ? "재생성" : "AI 답변"}
+          {busy ? "생성 중..." : hasAnswer ? "재생성" : "수동 답변"}
         </button>
       </div>
 

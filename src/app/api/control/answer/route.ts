@@ -28,7 +28,7 @@ export async function POST(req: Request) {
   const messageId = body?.messageId;
   const model: AnswerModel = VALID_MODELS.includes(body?.model as AnswerModel)
     ? (body!.model as AnswerModel)
-    : "sonnet";
+    : "opus";
   if (!messageId) {
     return NextResponse.json(
       { error: "messageId가 필요합니다." },

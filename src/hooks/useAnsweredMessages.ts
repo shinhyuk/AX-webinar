@@ -10,6 +10,7 @@ export type FeedMessage = {
   answer: string | null;
   model: string | null;
   status: string;
+  classification: { is_question?: boolean; reason?: string } | null;
   created_at: string;
   answered_at: string | null;
 };

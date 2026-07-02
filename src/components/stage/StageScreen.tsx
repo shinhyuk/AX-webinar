@@ -53,7 +53,7 @@ export function StageScreen() {
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [messages.length]);
+  }, [messages]);
 
   return (
     <div className="grid h-[100dvh] grid-cols-[7fr_3fr] gap-3 bg-background p-3">
@@ -80,7 +80,7 @@ export function StageScreen() {
           ) : (
             <ul className="flex flex-col gap-4">
               {messages.map((m) => (
-                <StageBubble
+                <StageItem
                   key={m.id}
                   message={m}
                   alreadyTyped={!!m.answer && typedIds.has(m.id)}
@@ -131,7 +131,7 @@ function PptPanel({ url }: { url: string | null }) {
   );
 }
 
-function StageBubble({
+function StageItem({
   message,
   alreadyTyped,
   onTyped,
@@ -141,10 +141,12 @@ function StageBubble({
   onTyped: () => void;
 }) {
   const nickname = message.nickname?.trim() || "익명";
+  const isQuestion = !!message.classification?.is_question;
   const hasAnswer = !!message.answer;
 
   return (
-    <li className="ax-fade-in flex flex-col gap-2">
+    <li className="ax-fade-in flex flex-col gap-2.5">
+      {/* 청중 채팅: 좌측 */}
       <div className="flex items-end gap-2">
         <div className="w-9 shrink-0">
           <div
@@ -157,25 +159,41 @@ function StageBubble({
         <div className="flex max-w-[92%] flex-col items-start">
           <div className="mb-0.5 flex items-baseline gap-2 text-[13px]">
             <span className="font-semibold">{nickname}</span>
+            {isQuestion ? (
+              <span className="rounded-full bg-accent-dim px-2 py-px text-[11px] font-bold text-accent">
+                질문
+              </span>
+            ) : null}
           </div>
-          <p className="whitespace-pre-wrap break-words rounded-2xl rounded-tl-md border border-white/10 bg-white/[0.05] px-4 py-2.5 text-[18px] leading-snug">
+          <p
+            className={
+              "whitespace-pre-wrap break-words rounded-2xl rounded-tl-md border px-4 py-2.5 text-[18px] leading-snug " +
+              (isQuestion
+                ? "border-accent/40 bg-accent-dim/60 ring-2 ring-accent/40 shadow-[0_0_20px_rgba(0,212,255,0.3)]"
+                : "border-white/10 bg-white/[0.05]")
+            }
+          >
             {message.content}
           </p>
         </div>
       </div>
 
+      {/* AI 답변: 우측, 질문 인용 먼저 */}
       {hasAnswer ? (
-        <div className="flex items-end gap-2">
+        <div className="flex flex-row-reverse items-end gap-2">
           <div className="w-9 shrink-0">
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-cyan-400 to-purple-500 text-[11px] font-bold text-white">
               AX
             </div>
           </div>
-          <div className="flex max-w-[92%] flex-col items-start">
-            <div className="mb-0.5 flex items-baseline gap-2 text-[13px]">
+          <div className="flex max-w-[92%] flex-col items-end">
+            <div className="mb-0.5 flex flex-row-reverse items-baseline gap-2 text-[13px]">
               <span className="font-semibold text-accent">HR-AX</span>
             </div>
-            <div className="rounded-2xl rounded-tl-md border border-cyan-400/15 bg-cyan-400/5 px-4 py-3">
+            <div className="rounded-2xl rounded-tr-md border border-cyan-400/20 bg-cyan-400/5 px-4 py-3">
+              <p className="mb-2 border-r-2 border-accent/40 pr-2 text-right text-[14px] leading-snug text-muted">
+                Q. {message.content}
+              </p>
               <p className="whitespace-pre-wrap break-words text-[20px] leading-snug">
                 <Typewriter
                   text={message.answer ?? ""}
