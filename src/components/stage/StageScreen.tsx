@@ -6,6 +6,7 @@ import {
   useAnsweredMessages,
   type FeedMessage,
 } from "@/hooks/useAnsweredMessages";
+import { useOnlineCount } from "@/hooks/useOnlineCount";
 
 const fetcher = async (url: string) => {
   const res = await fetch(url, { cache: "no-store" });
@@ -72,12 +73,15 @@ export function StageScreen() {
                 실시간 채팅
               </h2>
             </div>
-            <a
-              href="/report"
-              className="ax-btn-ghost mt-1 rounded-xl px-3 py-1.5 text-[12px] font-semibold"
-            >
-              질문 보고서
-            </a>
+            <div className="mt-1 flex items-center gap-2">
+              <OnlineBadge />
+              <a
+                href="/report"
+                className="ax-btn-ghost rounded-xl px-3 py-1.5 text-[12px] font-semibold"
+              >
+                질문 보고서
+              </a>
+            </div>
           </header>
         <div className="ax-scroll flex-1 min-h-0 overflow-y-auto px-4 py-4">
           {loading ? (
@@ -181,6 +185,30 @@ function TopQuestions({ messages }: { messages: FeedMessage[] }) {
         </div>
       ))}
     </div>
+  );
+}
+
+function OnlineBadge() {
+  const online = useOnlineCount(false);
+  return (
+    <span className="flex items-center gap-1.5 rounded-full bg-accent-dim px-3 py-1.5 text-[14px] font-bold tabular-nums text-accent">
+      <svg
+        viewBox="0 0 24 24"
+        className="h-4 w-4"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden
+      >
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+        <circle cx="9" cy="7" r="4" />
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+      </svg>
+      {online}명 접속
+    </span>
   );
 }
 

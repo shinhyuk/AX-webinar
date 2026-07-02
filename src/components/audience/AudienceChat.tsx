@@ -5,6 +5,7 @@ import {
   useAnsweredMessages,
   type FeedMessage,
 } from "@/hooks/useAnsweredMessages";
+import { useOnlineCount } from "@/hooks/useOnlineCount";
 
 const MAX_LEN = 500;
 const MINE_KEY = "ax.mineIds";
@@ -55,6 +56,7 @@ function formatTime(ts: string): string {
 export function AudienceChat() {
   const [nickname, setNickname] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
+  const [editing, setEditing] = useState(false);
 
   useEffect(() => {
     try {
@@ -73,21 +75,40 @@ export function AudienceChat() {
       /* ignore */
     }
     setNickname(nick);
+    setEditing(false);
   }
 
   if (!ready) return <div className="h-[100dvh] bg-background" />;
 
   return (
     <>
-      <ChatView nickname={nickname ?? ""} />
-      {!nickname ? <NicknameModal onSubmit={handleNickname} /> : null}
+      <ChatView
+        nickname={nickname ?? ""}
+        onRequestEdit={() => setEditing(true)}
+      />
+      {!nickname || editing ? (
+        <NicknameModal
+          initial={nickname ?? ""}
+          onSubmit={handleNickname}
+          onCancel={nickname ? () => setEditing(false) : undefined}
+        />
+      ) : null}
     </>
   );
 }
 
-function NicknameModal({ onSubmit }: { onSubmit: (nick: string) => void }) {
-  const [value, setValue] = useState("");
+function NicknameModal({
+  initial,
+  onSubmit,
+  onCancel,
+}: {
+  initial?: string;
+  onSubmit: (nick: string) => void;
+  onCancel?: () => void;
+}) {
+  const [value, setValue] = useState(initial ?? "");
   const [error, setError] = useState<string | null>(null);
+  const isEdit = !!initial;
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -117,12 +138,20 @@ function NicknameModal({ onSubmit }: { onSubmit: (nick: string) => void }) {
           </span>
         </div>
         <h2 className="mt-2 text-[20px] font-bold leading-snug">
-          환영합니다 👋
-          <br />
-          닉네임을 입력해주세요
+          {isEdit ? (
+            "닉네임 변경하기"
+          ) : (
+            <>
+              환영합니다 👋
+              <br />
+              닉네임을 입력해주세요
+            </>
+          )}
         </h2>
         <p className="mt-1.5 text-sm text-muted">
-          채팅에 표시될 이름이에요. 한 번만 입력하면 됩니다.
+          {isEdit
+            ? "새 닉네임은 이후 보내는 메시지부터 적용됩니다."
+            : "채팅에 표시될 이름이에요. 한 번만 입력하면 됩니다."}
         </p>
         <input
           type="text"
@@ -144,23 +173,42 @@ function NicknameModal({ onSubmit }: { onSubmit: (nick: string) => void }) {
           )}
           <span className="tabular-nums text-muted/70">{value.length}/12</span>
         </div>
-        <button
-          type="submit"
-          className="ax-btn mt-5 w-full rounded-2xl py-4 text-[15px]"
-        >
-          채팅 시작하기
-        </button>
+        <div className="mt-5 flex gap-2">
+          {onCancel ? (
+            <button
+              type="button"
+              onClick={onCancel}
+              className="ax-btn-ghost flex-1 rounded-2xl py-4 text-[15px]"
+            >
+              취소
+            </button>
+          ) : null}
+          <button
+            type="submit"
+            className="ax-btn flex-1 rounded-2xl py-4 text-[15px]"
+          >
+            {isEdit ? "변경하기" : "채팅 시작하기"}
+          </button>
+        </div>
       </form>
     </div>
   );
 }
 
-function ChatView({ nickname }: { nickname: string }) {
+function ChatView({
+  nickname,
+  onRequestEdit,
+}: {
+  nickname: string;
+  onRequestEdit: () => void;
+}) {
   const { messages, loading } = useAnsweredMessages();
+  const online = useOnlineCount(true);
   const [content, setContent] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mine, setMine] = useState<Set<string>>(new Set());
+  const [menuOpen, setMenuOpen] = useState(false);
   const listEndRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -212,18 +260,69 @@ function ChatView({ nickname }: { nickname: string }) {
       className="flex h-[100dvh] flex-col bg-background"
       style={{ paddingTop: "env(safe-area-inset-top)" }}
     >
-      <header className="flex items-center justify-between border-b border-line px-4 py-3">
-        <div>
-          <p className="text-[10px] font-semibold tracking-[0.22em] text-accent">
+      <header className="flex items-center gap-2 border-b border-line px-3 py-3">
+        <a
+          href="https://hrax.co.kr"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="ax-btn-ghost shrink-0 rounded-full px-3 py-1.5 text-[12px] font-semibold"
+        >
+          Info
+        </a>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[10px] font-semibold tracking-[0.18em] text-accent">
             HYUNDAI AUTOEVER · 한국 HRD 포럼
           </p>
-          <h1 className="mt-0.5 text-[17px] font-bold tracking-tight">
+          <h1 className="truncate text-[16px] font-bold tracking-tight">
             HR-AX 라이브 채팅
           </h1>
         </div>
-        <span className="rounded-full bg-white/[0.06] px-2.5 py-1 text-[11px] font-medium text-muted ring-1 ring-white/10">
-          {nickname}
+        <span className="flex shrink-0 items-center gap-1 rounded-full bg-accent-dim px-2.5 py-1 text-[11px] font-semibold tabular-nums text-accent">
+          <svg
+            viewBox="0 0 24 24"
+            className="h-3.5 w-3.5"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden
+          >
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+          </svg>
+          {online}
         </span>
+        <div className="relative shrink-0">
+          <button
+            type="button"
+            onClick={() => setMenuOpen((v) => !v)}
+            className="flex h-8 w-8 items-center justify-center rounded-full text-[13px] font-bold text-white ring-1 ring-white/15"
+            style={{ backgroundColor: colorFromKey(nickname || "익명") }}
+            aria-label="내 메뉴"
+          >
+            {(nickname || "익").slice(0, 1)}
+          </button>
+          {menuOpen ? (
+            <div className="absolute right-0 top-10 z-40 w-44 rounded-2xl border border-white/10 bg-[#0d1020] p-2 shadow-2xl">
+              <p className="truncate px-2 py-1 text-[11px] text-muted">
+                {nickname}
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuOpen(false);
+                  onRequestEdit();
+                }}
+                className="ax-btn-ghost w-full rounded-xl px-3 py-2 text-left text-[13px] font-semibold"
+              >
+                닉네임 변경하기
+              </button>
+            </div>
+          ) : null}
+        </div>
       </header>
 
       <div className="ax-scroll flex-1 min-h-0 overflow-y-auto px-3 pt-3 pb-2">
