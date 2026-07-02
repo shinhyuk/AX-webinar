@@ -7,10 +7,10 @@ export type FeedMessage = {
   id: string;
   nickname: string | null;
   content: string;
-  classification: {
-    normalized_question?: string;
-  } | null;
   answer: string | null;
+  model: string | null;
+  status: string;
+  created_at: string;
   answered_at: string | null;
 };
 
@@ -42,18 +42,20 @@ export function useAnsweredMessages() {
     if (!supabase) return;
 
     const channel = supabase
-      .channel("answered-feed")
+      .channel("messages-feed")
       .on(
         "postgres_changes",
         {
           event: "*",
           schema: "public",
           table: "messages",
-          filter: "status=eq.answered",
         },
         (payload) => {
           const row = (payload.new ?? payload.old) as FeedMessage | null;
           if (!row || !row.id) return;
+          if (row.status && row.status !== "chat" && row.status !== "answered") {
+            return;
+          }
           setMessages((prev) => {
             const idx = prev.findIndex((m) => m.id === row.id);
             if (idx === -1) {

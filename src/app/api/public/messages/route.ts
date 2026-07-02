@@ -7,10 +7,10 @@ export async function GET() {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
     .from("messages")
-    .select("id, nickname, content, classification, answer, answered_at")
-    .eq("status", "answered")
-    .order("answered_at", { ascending: true })
-    .limit(200);
+    .select("id, nickname, content, answer, model, status, created_at, answered_at")
+    .in("status", ["chat", "answered"])
+    .order("created_at", { ascending: true })
+    .limit(500);
   if (error) {
     return NextResponse.json(
       { error: "메시지를 불러오지 못했습니다." },

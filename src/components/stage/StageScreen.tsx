@@ -13,8 +13,22 @@ const fetcher = async (url: string) => {
   return res.json();
 };
 
-function questionOf(m: FeedMessage): string {
-  return m.classification?.normalized_question?.trim() || m.content;
+function colorFromKey(key: string): string {
+  const palette = [
+    "#38bdf8",
+    "#34d399",
+    "#fbbf24",
+    "#fb7185",
+    "#c084fc",
+    "#22d3ee",
+    "#f472b6",
+    "#2dd4bf",
+  ];
+  let hash = 0;
+  for (let i = 0; i < key.length; i++) {
+    hash = (hash * 31 + key.charCodeAt(i)) | 0;
+  }
+  return palette[Math.abs(hash) % palette.length];
 }
 
 export function StageScreen() {
@@ -31,7 +45,9 @@ export function StageScreen() {
   useEffect(() => {
     if (initialIdsRef.current !== null) return;
     if (loading) return;
-    initialIdsRef.current = new Set(messages.map((m) => m.id));
+    initialIdsRef.current = new Set(
+      messages.filter((m) => m.answer).map((m) => m.id),
+    );
     setTypedIds(new Set(initialIdsRef.current));
   }, [loading, messages]);
 
@@ -46,10 +62,10 @@ export function StageScreen() {
       <section className="ax-card flex min-h-0 flex-col overflow-hidden">
         <header className="border-b border-line px-5 py-3">
           <p className="text-[11px] font-semibold tracking-[0.22em] text-accent">
-            LIVE Q&amp;A
+            LIVE CHAT
           </p>
           <h2 className="mt-0.5 text-xl font-bold tracking-tight">
-            라이브 채팅
+            실시간 채팅
           </h2>
         </header>
         <div className="ax-scroll flex-1 min-h-0 overflow-y-auto px-4 py-4">
@@ -58,16 +74,16 @@ export function StageScreen() {
           ) : messages.length === 0 ? (
             <div className="flex h-full items-center justify-center">
               <p className="text-center text-base text-muted">
-                답변된 질문이 여기 표시됩니다
+                청중 메시지가 여기 표시됩니다
               </p>
             </div>
           ) : (
-            <ul className="flex flex-col gap-6">
+            <ul className="flex flex-col gap-4">
               {messages.map((m) => (
-                <StageMessage
+                <StageBubble
                   key={m.id}
                   message={m}
-                  alreadyTyped={typedIds.has(m.id)}
+                  alreadyTyped={!!m.answer && typedIds.has(m.id)}
                   onTyped={() =>
                     setTypedIds((prev) => {
                       if (prev.has(m.id)) return prev;
@@ -96,7 +112,7 @@ function PptPanel({ url }: { url: string | null }) {
             PPT EMBED
           </p>
           <p className="mt-2 text-base">
-            /control에서 PPT 임베드 URL을 저장하면 여기에 표시됩니다.
+            /control에서 PPT를 업로드하면 여기에 표시됩니다.
           </p>
         </div>
       </section>
@@ -115,7 +131,7 @@ function PptPanel({ url }: { url: string | null }) {
   );
 }
 
-function StageMessage({
+function StageBubble({
   message,
   alreadyTyped,
   onTyped,
@@ -125,35 +141,52 @@ function StageMessage({
   onTyped: () => void;
 }) {
   const nickname = message.nickname?.trim() || "익명";
-  const question = questionOf(message);
-  const answer = message.answer ?? "";
+  const hasAnswer = !!message.answer;
 
   return (
-    <li className="ax-fade-in flex flex-col gap-3">
-      <div>
-        <div className="mb-1 flex items-baseline gap-2 text-[14px]">
-          <span className="font-semibold">{nickname}</span>
-          <span className="text-[12px] text-muted/70">질문</span>
+    <li className="ax-fade-in flex flex-col gap-2">
+      <div className="flex items-end gap-2">
+        <div className="w-9 shrink-0">
+          <div
+            className="flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold text-white"
+            style={{ backgroundColor: colorFromKey(nickname) }}
+          >
+            {nickname.slice(0, 1)}
+          </div>
         </div>
-        <p className="whitespace-pre-wrap break-words text-[22px] leading-snug">
-          {question}
-        </p>
-      </div>
-      <div>
-        <div className="mb-1 flex items-baseline gap-2 text-[14px]">
-          <span className="font-semibold text-accent">HR-AX</span>
-          <span className="text-[12px] text-muted/70">답변</span>
-        </div>
-        <div className="rounded-2xl border border-cyan-400/15 bg-cyan-400/5 px-4 py-3">
-          <p className="whitespace-pre-wrap break-words text-[24px] leading-snug">
-            <Typewriter
-              text={answer}
-              instant={alreadyTyped}
-              onDone={onTyped}
-            />
+        <div className="flex max-w-[92%] flex-col items-start">
+          <div className="mb-0.5 flex items-baseline gap-2 text-[13px]">
+            <span className="font-semibold">{nickname}</span>
+          </div>
+          <p className="whitespace-pre-wrap break-words rounded-2xl rounded-tl-md border border-white/10 bg-white/[0.05] px-4 py-2.5 text-[18px] leading-snug">
+            {message.content}
           </p>
         </div>
       </div>
+
+      {hasAnswer ? (
+        <div className="flex items-end gap-2">
+          <div className="w-9 shrink-0">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-cyan-400 to-purple-500 text-[11px] font-bold text-white">
+              AX
+            </div>
+          </div>
+          <div className="flex max-w-[92%] flex-col items-start">
+            <div className="mb-0.5 flex items-baseline gap-2 text-[13px]">
+              <span className="font-semibold text-accent">HR-AX</span>
+            </div>
+            <div className="rounded-2xl rounded-tl-md border border-cyan-400/15 bg-cyan-400/5 px-4 py-3">
+              <p className="whitespace-pre-wrap break-words text-[20px] leading-snug">
+                <Typewriter
+                  text={message.answer ?? ""}
+                  instant={alreadyTyped}
+                  onDone={onTyped}
+                />
+              </p>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </li>
   );
 }

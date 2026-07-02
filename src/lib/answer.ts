@@ -1,4 +1,5 @@
-import { getAnthropic, MODELS } from "./anthropic";
+import { getAnthropic } from "./anthropic";
+import { ANSWER_MODEL_IDS, type AnswerModel } from "./types";
 
 const FALLBACK_ANSWER =
   "준비된 자료 범위 밖 질문이라, 별도로 확인해서 안내드리겠습니다.";
@@ -21,14 +22,16 @@ ${kbText}
 export async function generateAnswer(
   question: string,
   kbText: string | null,
-): Promise<string> {
+  model: AnswerModel = "sonnet",
+): Promise<{ answer: string; modelId: string; usedFallback: boolean }> {
+  const modelId = ANSWER_MODEL_IDS[model];
   const kb = (kbText ?? "").trim();
   if (!kb) {
-    return FALLBACK_ANSWER;
+    return { answer: FALLBACK_ANSWER, modelId, usedFallback: true };
   }
   const anthropic = getAnthropic();
   const res = await anthropic.messages.create({
-    model: MODELS.answer,
+    model: modelId,
     max_tokens: 600,
     system: buildSystemPrompt(kb),
     messages: [
@@ -39,9 +42,10 @@ export async function generateAnswer(
     ],
   });
   const part = res.content.find((c) => c.type === "text");
-  if (!part || part.type !== "text") return FALLBACK_ANSWER;
-  const text = part.text.trim();
-  return text || FALLBACK_ANSWER;
+  const raw = part && part.type === "text" ? part.text.trim() : "";
+  const answer = raw || FALLBACK_ANSWER;
+  const usedFallback = answer.includes(FALLBACK_ANSWER);
+  return { answer, modelId, usedFallback };
 }
 
 export { FALLBACK_ANSWER };
