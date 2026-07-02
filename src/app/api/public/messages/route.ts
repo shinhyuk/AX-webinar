@@ -7,7 +7,9 @@ export async function GET() {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
     .from("messages")
-    .select("id, nickname, content, answer, model, status, created_at, answered_at")
+    .select(
+      "id, nickname, content, answer, model, status, classification, created_at, answered_at",
+    )
     .in("status", ["chat", "answered"])
     .order("created_at", { ascending: true })
     .limit(500);
