@@ -410,6 +410,8 @@ function ChatItem({
   const nickname = message.nickname?.trim() || "익명";
   const isQuestion = !!message.classification?.is_question;
   const hasAnswer = !!message.answer;
+  const unanswerable =
+    isMine && !hasAnswer && !!message.classification?.unanswerable;
 
   return (
     <li className="ax-fade-in flex flex-col gap-2">
@@ -466,6 +468,17 @@ function ChatItem({
           </div>
         </div>
       </div>
+
+      {/* 답변 불가 안내: 질문자 본인에게만 표시 */}
+      {unanswerable ? (
+        <div className="ax-fade-in flex justify-end">
+          <p className="max-w-[85%] rounded-xl border border-white/10 bg-white/[0.03] px-3 py-1.5 text-[12px] leading-relaxed text-muted">
+            🙏 준비된 지식 범위 밖 질문이라 지금 바로 답변드리기 어려워요.
+            발표자가 확인 후 안내드릴게요.{" "}
+            <span className="text-muted/60">(이 안내는 나에게만 보여요)</span>
+          </p>
+        </div>
+      ) : null}
 
       {/* AI 답변: 우측 정렬, 질문 인용 먼저 표시 */}
       {hasAnswer ? (

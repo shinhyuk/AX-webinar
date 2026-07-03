@@ -118,32 +118,6 @@ export function StageScreen() {
 
 const MEDALS = ["🥇", "🥈", "🥉"];
 
-export function rankQuestioners(messages: FeedMessage[]) {
-  const byNick = new Map<
-    string,
-    { nickname: string; total: number; count: number; best: number }
-  >();
-  for (const m of messages) {
-    if (!m.classification?.is_question) continue;
-    const score = m.classification.score ?? 0;
-    if (score <= 0) continue;
-    const nickname = m.nickname?.trim() || "익명";
-    const entry = byNick.get(nickname) ?? {
-      nickname,
-      total: 0,
-      count: 0,
-      best: 0,
-    };
-    entry.total += score;
-    entry.count += 1;
-    entry.best = Math.max(entry.best, score);
-    byNick.set(nickname, entry);
-  }
-  return Array.from(byNick.values()).sort(
-    (a, b) => b.total - a.total || b.best - a.best,
-  );
-}
-
 function TopQuestions({ messages }: { messages: FeedMessage[] }) {
   const top = messages
     .filter(
@@ -261,11 +235,6 @@ function StageItem({
             {isQuestion ? (
               <span className="rounded-full bg-accent-dim px-2 py-px text-[11px] font-bold text-accent">
                 질문
-                {message.classification?.score ? (
-                  <span className="ml-1 tabular-nums">
-                    {message.classification.score}점
-                  </span>
-                ) : null}
               </span>
             ) : null}
           </div>

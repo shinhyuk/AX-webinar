@@ -398,6 +398,10 @@ function MessageRow({
         <span className="text-[11px] text-muted/70">
           {hasAnswer ? (
             <span className="text-accent">답변 완료</span>
+          ) : message.classification?.unanswerable ? (
+            <span className="text-amber-400/80">
+              지식 범위 밖 · 질문자에게 안내됨
+            </span>
           ) : message.classification?.is_question ? (
             <span className="text-accent/70">답변 생성 대기 중...</span>
           ) : (
