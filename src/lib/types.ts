@@ -9,10 +9,13 @@ export type MessageStatus =
 
 export type Classification = {
   is_question: boolean;
-  on_topic: boolean;
-  safe: boolean;
-  reason: string;
-  normalized_question: string;
+  score?: number;
+  reason?: string;
+  unanswerable?: boolean;
+  // 이전 스키마 호환
+  on_topic?: boolean;
+  safe?: boolean;
+  normalized_question?: string;
 };
 
 export type Message = {

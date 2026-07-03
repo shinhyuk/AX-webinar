@@ -14,6 +14,7 @@ export type FeedMessage = {
     is_question?: boolean;
     score?: number;
     reason?: string;
+    unanswerable?: boolean;
   } | null;
   created_at: string;
   answered_at: string | null;

@@ -28,8 +28,9 @@ function rankQuestioners(messages: FeedMessage[]): Ranked[] {
     entry.best = Math.max(entry.best, score);
     byNick.set(nickname, entry);
   }
+  // 1인당 가장 높은 질문 1개 기준으로 순위 산정 (누적 아님)
   return Array.from(byNick.values()).sort(
-    (a, b) => b.total - a.total || b.best - a.best,
+    (a, b) => b.best - a.best || b.count - a.count,
   );
 }
 
@@ -120,11 +121,14 @@ export function QuestionReport() {
                   <div className="text-5xl">{MEDALS[i]}</div>
                   <div className="mt-3 text-2xl font-bold">{p.nickname}</div>
                   <div className="mt-1 text-sm text-muted">
-                    질문 {p.count}건 · 최고 {p.best}점
+                    질문 {p.count}건
                   </div>
                   <div className="mt-3 text-4xl font-bold tabular-nums text-accent">
-                    {p.total}
+                    {p.best}
                     <span className="ml-1 text-lg font-medium">점</span>
+                  </div>
+                  <div className="mt-0.5 text-[11px] text-muted/70">
+                    최고 질문 점수
                   </div>
                 </div>
               ))}

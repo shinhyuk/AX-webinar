@@ -74,8 +74,17 @@ export async function POST(req: Request) {
           "opus",
         );
 
-        // 지식 기반에 없어 답변 불가한 질문은 답변을 아예 남기지 않는다
-        if (result.usedFallback) return;
+        // 지식 기반에 없어 답변 불가: 답변은 남기지 않되,
+        // 질문자 본인 화면에서만 안내가 뜨도록 플래그를 기록한다
+        if (result.usedFallback) {
+          await supabase
+            .from("messages")
+            .update({
+              classification: { ...judgement, unanswerable: true },
+            })
+            .eq("id", messageId);
+          return;
+        }
 
         await supabase
           .from("messages")
