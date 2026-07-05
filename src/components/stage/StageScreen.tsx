@@ -167,9 +167,17 @@ export function StageScreen({ demo = false }: { demo?: boolean }) {
     setTransforming(false);
   }, []);
 
+  // 시나리오 종료 여부 (마지막 스텝 = QR 구석 이동까지 완료)
+  const scriptDone = exited || stepIndex >= THEATER_SCRIPT.length;
+  const scriptDoneRef = useRef(scriptDone);
+  scriptDoneRef.current = scriptDone;
+  const pptFrameRef = useRef<HTMLIFrameElement | null>(null);
+
   useEffect(() => {
     if (!demo) return;
     const onKey = (e: KeyboardEvent) => {
+      // 시나리오가 끝나면 키를 가로채지 않음 (리모컨 → PPT)
+      if (scriptDoneRef.current) return;
       // 수정키 단독 입력은 무시
       if (["Shift", "Control", "Alt", "Meta", "CapsLock"].includes(e.key))
         return;
@@ -188,6 +196,15 @@ export function StageScreen({ demo = false }: { demo?: boolean }) {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [demo, advance, back]);
+
+  // 시나리오가 끝나면 (또는 일반 모드에서 로드되면) PPT iframe에 포커스를 넘겨
+  // 프레젠터 리모컨의 방향키가 슬라이드 넘김으로 전달되게 한다
+  const pptUrl = cfg?.ppt_embed_url ?? null;
+  useEffect(() => {
+    if (!scriptDone || !pptUrl) return;
+    const id = window.setTimeout(() => pptFrameRef.current?.focus(), 400);
+    return () => window.clearTimeout(id);
+  }, [scriptDone, pptUrl]);
 
   useEffect(() => {
     if (initialIdsRef.current !== null) return;
@@ -224,7 +241,7 @@ export function StageScreen({ demo = false }: { demo?: boolean }) {
 
       <div className="grid h-full grid-cols-[7fr_3fr] gap-3">
         <div className={justRevealed ? "ax-slide-in-left min-h-0" : "min-h-0"}>
-          <PptPanel url={cfg?.ppt_embed_url ?? null} />
+          <PptPanel url={pptUrl} frameRef={pptFrameRef} />
         </div>
 
         <section
@@ -516,7 +533,13 @@ function colorFromKey(key: string): string {
   return palette[Math.abs(hash) % palette.length];
 }
 
-function PptPanel({ url }: { url: string | null }) {
+function PptPanel({
+  url,
+  frameRef,
+}: {
+  url: string | null;
+  frameRef?: React.Ref<HTMLIFrameElement>;
+}) {
   if (!url) {
     return (
       <section className="ax-card flex h-full min-h-0 items-center justify-center overflow-hidden">
@@ -534,6 +557,7 @@ function PptPanel({ url }: { url: string | null }) {
   return (
     <section className="ax-card h-full overflow-hidden">
       <iframe
+        ref={frameRef}
         src={url}
         className="h-full w-full"
         frameBorder={0}
