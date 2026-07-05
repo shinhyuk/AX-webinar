@@ -79,23 +79,41 @@ function deriveTheater(count: number): TheaterState {
   return s;
 }
 
-/* ── 타자 효과음 (Web Audio 합성, 음원 파일 불필요) ────── */
+/* ── 효과음 (Web Audio 합성, 음원 파일 불필요) ─────────── */
 
 let typingAudioCtx: AudioContext | null = null;
 
+function getAudioCtx(): AudioContext | null {
+  if (typeof window === "undefined") return null;
+  if (!typingAudioCtx) {
+    const Ctor =
+      window.AudioContext ??
+      (window as unknown as { webkitAudioContext?: typeof AudioContext })
+        .webkitAudioContext;
+    if (!Ctor) return null;
+    typingAudioCtx = new Ctor();
+  }
+  if (typingAudioCtx.state === "suspended") void typingAudioCtx.resume();
+  return typingAudioCtx;
+}
+
+function makeNoiseBuffer(ctx: AudioContext, seconds: number): AudioBuffer {
+  const buffer = ctx.createBuffer(
+    1,
+    Math.max(1, Math.floor(ctx.sampleRate * seconds)),
+    ctx.sampleRate,
+  );
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < data.length; i++) {
+    data[i] = Math.random() * 2 - 1;
+  }
+  return buffer;
+}
+
 function playKeySound() {
   try {
-    if (typeof window === "undefined") return;
-    if (!typingAudioCtx) {
-      const Ctor =
-        window.AudioContext ??
-        (window as unknown as { webkitAudioContext?: typeof AudioContext })
-          .webkitAudioContext;
-      if (!Ctor) return;
-      typingAudioCtx = new Ctor();
-    }
-    const ctx = typingAudioCtx;
-    if (ctx.state === "suspended") void ctx.resume();
+    const ctx = getAudioCtx();
+    if (!ctx) return;
 
     // 짧은 노이즈 버스트 → 밴드패스 → 감쇠 = 기계식 키보드 틱 소리
     const dur = 0.035;
@@ -124,6 +142,121 @@ function playKeySound() {
   }
 }
 
+/** 변신 시퀀스 사운드: 라이저 → 붐 → 금속 클랭크 → 베이스 드롭 (~2.7초) */
+function playTransformSound() {
+  try {
+    const ctx = getAudioCtx();
+    if (!ctx) return;
+    const t = ctx.currentTime;
+    const out = ctx.createGain();
+    out.gain.value = 1;
+    out.connect(ctx.destination);
+
+    // 1) 라이저: 상승하는 톱니파 + 필터 스윕 (0 ~ 1.7s)
+    const riser = ctx.createOscillator();
+    riser.type = "sawtooth";
+    riser.frequency.setValueAtTime(65, t);
+    riser.frequency.exponentialRampToValueAtTime(900, t + 1.6);
+    const riserFilter = ctx.createBiquadFilter();
+    riserFilter.type = "lowpass";
+    riserFilter.frequency.setValueAtTime(300, t);
+    riserFilter.frequency.exponentialRampToValueAtTime(7000, t + 1.6);
+    const riserGain = ctx.createGain();
+    riserGain.gain.setValueAtTime(0.001, t);
+    riserGain.gain.exponentialRampToValueAtTime(0.14, t + 1.4);
+    riserGain.gain.exponentialRampToValueAtTime(0.001, t + 1.75);
+    riser.connect(riserFilter);
+    riserFilter.connect(riserGain);
+    riserGain.connect(out);
+    riser.start(t);
+    riser.stop(t + 1.8);
+
+    // 라이저에 섞이는 노이즈 스윕
+    const sweep = ctx.createBufferSource();
+    sweep.buffer = makeNoiseBuffer(ctx, 1.8);
+    const sweepBand = ctx.createBiquadFilter();
+    sweepBand.type = "bandpass";
+    sweepBand.Q.value = 1.4;
+    sweepBand.frequency.setValueAtTime(250, t);
+    sweepBand.frequency.exponentialRampToValueAtTime(7500, t + 1.6);
+    const sweepGain = ctx.createGain();
+    sweepGain.gain.setValueAtTime(0.001, t);
+    sweepGain.gain.exponentialRampToValueAtTime(0.1, t + 1.5);
+    sweepGain.gain.exponentialRampToValueAtTime(0.001, t + 1.75);
+    sweep.connect(sweepBand);
+    sweepBand.connect(sweepGain);
+    sweepGain.connect(out);
+    sweep.start(t);
+    sweep.stop(t + 1.8);
+
+    // 2) 워프 진입 붐 (0.8s 시점)
+    const boom = ctx.createOscillator();
+    boom.type = "sine";
+    boom.frequency.setValueAtTime(160, t + 0.8);
+    boom.frequency.exponentialRampToValueAtTime(36, t + 1.5);
+    const boomGain = ctx.createGain();
+    boomGain.gain.setValueAtTime(0.001, t + 0.78);
+    boomGain.gain.exponentialRampToValueAtTime(0.4, t + 0.84);
+    boomGain.gain.exponentialRampToValueAtTime(0.001, t + 1.7);
+    boom.connect(boomGain);
+    boomGain.connect(out);
+    boom.start(t + 0.78);
+    boom.stop(t + 1.75);
+
+    // 3) 패널 조립 금속 클랭크 3연타 (1.75 / 1.95 / 2.15s)
+    const clankFreqs = [720, 540, 880];
+    clankFreqs.forEach((freq, i) => {
+      const at = t + 1.75 + i * 0.2;
+      const hit = ctx.createOscillator();
+      hit.type = "square";
+      hit.frequency.setValueAtTime(freq, at);
+      hit.frequency.exponentialRampToValueAtTime(freq * 0.55, at + 0.09);
+      const hitGain = ctx.createGain();
+      hitGain.gain.setValueAtTime(0.16, at);
+      hitGain.gain.exponentialRampToValueAtTime(0.001, at + 0.13);
+      const hitBand = ctx.createBiquadFilter();
+      hitBand.type = "bandpass";
+      hitBand.frequency.value = freq * 2.4;
+      hitBand.Q.value = 6;
+      hit.connect(hitBand);
+      hitBand.connect(hitGain);
+      hitGain.connect(out);
+      hit.start(at);
+      hit.stop(at + 0.15);
+
+      const click = ctx.createBufferSource();
+      click.buffer = makeNoiseBuffer(ctx, 0.05);
+      const clickHp = ctx.createBiquadFilter();
+      clickHp.type = "highpass";
+      clickHp.frequency.value = 3000;
+      const clickGain = ctx.createGain();
+      clickGain.gain.setValueAtTime(0.12, at);
+      clickGain.gain.exponentialRampToValueAtTime(0.001, at + 0.05);
+      click.connect(clickHp);
+      clickHp.connect(clickGain);
+      clickGain.connect(out);
+      click.start(at);
+      click.stop(at + 0.06);
+    });
+
+    // 4) 마무리 베이스 드롭 (2.35s)
+    const drop = ctx.createOscillator();
+    drop.type = "sine";
+    drop.frequency.setValueAtTime(95, t + 2.35);
+    drop.frequency.exponentialRampToValueAtTime(42, t + 2.9);
+    const dropGain = ctx.createGain();
+    dropGain.gain.setValueAtTime(0.001, t + 2.33);
+    dropGain.gain.exponentialRampToValueAtTime(0.32, t + 2.4);
+    dropGain.gain.exponentialRampToValueAtTime(0.001, t + 3.05);
+    drop.connect(dropGain);
+    dropGain.connect(out);
+    drop.start(t + 2.33);
+    drop.stop(t + 3.1);
+  } catch {
+    // 오디오 미지원/차단 환경에서는 조용히 무시
+  }
+}
+
 /* ── 메인 컴포넌트 ─────────────────────────────────────── */
 
 export function StageScreen({ demo = false }: { demo?: boolean }) {
@@ -139,8 +272,17 @@ export function StageScreen({ demo = false }: { demo?: boolean }) {
 
   // 시나리오 상태
   const [stepIndex, setStepIndex] = useState(0);
-  const [transforming, setTransforming] = useState(false);
+  // 변신 시퀀스: glitch(붕괴) → warp(에너지 폭발) → assemble(패널 조립) → none
+  const [transformPhase, setTransformPhase] = useState<
+    "none" | "glitch" | "warp" | "assemble"
+  >("none");
   const [exited, setExited] = useState(!demo);
+  const transformTimersRef = useRef<number[]>([]);
+
+  const clearTransformTimers = useCallback(() => {
+    for (const id of transformTimersRef.current) window.clearTimeout(id);
+    transformTimersRef.current = [];
+  }, []);
 
   const t = deriveTheater(exited ? THEATER_SCRIPT.length : stepIndex);
   const transformed = exited || t.transformed;
@@ -155,17 +297,26 @@ export function StageScreen({ demo = false }: { demo?: boolean }) {
       if (i >= THEATER_SCRIPT.length) return i;
       const step = THEATER_SCRIPT[i];
       if (step.kind === "transform") {
-        setTransforming(true);
-        window.setTimeout(() => setTransforming(false), 1300);
+        clearTransformTimers();
+        playTransformSound();
+        setTransformPhase("glitch");
+        transformTimersRef.current = [
+          window.setTimeout(() => setTransformPhase("warp"), 800),
+          window.setTimeout(() => setTransformPhase("assemble"), 1750),
+          window.setTimeout(() => setTransformPhase("none"), 2800),
+        ];
       }
       return i + 1;
     });
-  }, []);
+  }, [clearTransformTimers]);
 
   const back = useCallback(() => {
     setStepIndex((i) => Math.max(0, i - 1));
-    setTransforming(false);
-  }, []);
+    clearTransformTimers();
+    setTransformPhase("none");
+  }, [clearTransformTimers]);
+
+  useEffect(() => clearTransformTimers, [clearTransformTimers]);
 
   // 시나리오 종료 여부 (마지막 스텝 = QR 구석 이동까지 완료)
   const scriptDone = exited || stepIndex >= THEATER_SCRIPT.length;
@@ -186,7 +337,8 @@ export function StageScreen({ demo = false }: { demo?: boolean }) {
         back();
       } else if (e.key === "0") {
         setExited(true);
-        setTransforming(false);
+        clearTransformTimers();
+        setTransformPhase("none");
       } else {
         // 아무 키나 누르면 다음 장면으로
         e.preventDefault();
@@ -195,7 +347,7 @@ export function StageScreen({ demo = false }: { demo?: boolean }) {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [demo, advance, back]);
+  }, [demo, advance, back, clearTransformTimers]);
 
   // 시나리오가 끝나면 (또는 일반 모드에서 로드되면) PPT iframe에 포커스를 넘겨
   // 프레젠터 리모컨의 방향키가 슬라이드 넘김으로 전달되게 한다
@@ -237,28 +389,39 @@ export function StageScreen({ demo = false }: { demo?: boolean }) {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages]);
 
-  const showIntro = demo && !exited && (!transformed || transforming);
-  const justRevealed = demo && !exited && transformed && !transforming;
+  const showIntro =
+    demo && !exited && (!transformed || transformPhase === "glitch");
+  const assembling = demo && !exited && transformPhase === "assemble";
 
   if (showIntro) {
     return (
       <IntroChat
         lines={t.introLines}
         loading={t.loading}
-        glitching={transforming}
+        glitching={transformPhase === "glitch"}
         onAdvance={advance}
       />
     );
   }
 
   return (
-    <div className="relative h-[100dvh] bg-background p-3">
-      {justRevealed ? (
+    <div
+      className={
+        "relative h-[100dvh] overflow-hidden bg-background p-3" +
+        (assembling ? " ax-settle-shake" : "")
+      }
+    >
+      {transformPhase === "warp" ? <WarpOverlay /> : null}
+      {assembling ? (
         <div className="ax-flash pointer-events-none absolute inset-0 z-50 bg-white" />
       ) : null}
 
       <div className="grid h-full grid-cols-[7fr_3fr] gap-3">
-        <div className={justRevealed ? "ax-slide-in-left min-h-0" : "min-h-0"}>
+        <div
+          className={
+            assembling ? "ax-assemble-left min-h-0" : "min-h-0"
+          }
+        >
           <PptPanel
             url={pptUrl}
             frameRef={pptFrameRef}
@@ -269,7 +432,7 @@ export function StageScreen({ demo = false }: { demo?: boolean }) {
         <section
           className={
             "ax-card flex min-h-0 flex-col overflow-hidden " +
-            (justRevealed ? "ax-slide-in-right" : "")
+            (assembling ? "ax-assemble-right" : "")
           }
         >
             <header className="flex items-start justify-between border-b border-line px-5 py-3">
@@ -355,6 +518,56 @@ export function StageScreen({ demo = false }: { demo?: boolean }) {
           </p>
         </div>
       ) : null}
+    </div>
+  );
+}
+
+/* ── 워프 연출: 에너지 코어 + 파티클 버스트 + 충격파 링 ── */
+
+function WarpOverlay() {
+  // 파티클 방향/거리/타이밍은 마운트 시 1회 생성
+  const particles = useRef(
+    Array.from({ length: 56 }, (_, i) => ({
+      angle: (i / 56) * 360 + Math.random() * 8,
+      dist: 42 + Math.random() * 55, // vmax
+      delay: Math.random() * 0.25,
+      size: 2 + Math.random() * 3,
+      hue: Math.random() > 0.5 ? "#00d4ff" : "#a78bfa",
+    })),
+  ).current;
+
+  return (
+    <div className="ax-warp-bg pointer-events-none absolute inset-0 z-[60] overflow-hidden bg-black">
+      {/* 회전하는 스피드라인 */}
+      <div className="ax-warp-spin absolute left-1/2 top-1/2 h-[220vmax] w-[220vmax] -translate-x-1/2 -translate-y-1/2" />
+      {/* 중심 에너지 코어 */}
+      <div className="ax-warp-core absolute left-1/2 top-1/2 h-40 w-40 -translate-x-1/2 -translate-y-1/2 rounded-full" />
+      {/* 충격파 링 */}
+      {[0, 0.18, 0.36, 0.54].map((d) => (
+        <div
+          key={d}
+          className="ax-warp-ring absolute left-1/2 top-1/2 h-32 w-32 -translate-x-1/2 -translate-y-1/2 rounded-full"
+          style={{ animationDelay: `${d}s` }}
+        />
+      ))}
+      {/* 파티클 버스트 */}
+      {particles.map((p, i) => (
+        <div
+          key={i}
+          className="ax-warp-particle absolute left-1/2 top-1/2 rounded-full"
+          style={
+            {
+              width: `${p.size}px`,
+              height: `${p.size}px`,
+              background: p.hue,
+              boxShadow: `0 0 ${p.size * 3}px ${p.hue}`,
+              animationDelay: `${p.delay}s`,
+              "--a": `${p.angle}deg`,
+              "--d": `${p.dist}vmax`,
+            } as React.CSSProperties
+          }
+        />
+      ))}
     </div>
   );
 }
