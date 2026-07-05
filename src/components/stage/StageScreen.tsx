@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import useSWR from "swr";
 import { QRCodeSVG } from "qrcode.react";
 import {
@@ -415,6 +416,7 @@ export function StageScreen({ demo = false }: { demo?: boolean }) {
       if (step.kind === "transform") {
         clearTransformTimers();
         playTransformSound();
+        void import("./RobotScene3D"); // 3D 씬 번들 미리 로드
         setTransformPhase("glitch");
         transformTimersRef.current = [
           window.setTimeout(() => setTransformPhase("space"), 1000),
@@ -753,97 +755,14 @@ function SpaceScene() {
   );
 }
 
-/* ── Act 2: 메카 조립 (부품 비행 결합 + 눈 점등 + 차지업) ── */
+/* ── Act 2: 메카 조립 — Three.js 실시간 3D (RobotScene3D.tsx) ── */
+
+const RobotCanvas = dynamic(() => import("./RobotScene3D"), { ssr: false });
 
 function RobotScene() {
   return (
     <div className="pointer-events-none absolute inset-0 z-[60] overflow-hidden bg-[#02040e]">
-      {/* 퍼스펙티브 그리드 바닥 */}
-      <div className="ax-grid-floor absolute inset-x-[-50%] bottom-[-12%] h-[55%]" />
-      {/* 후광 */}
-      <div className="ax-bot-halo absolute left-1/2 top-1/2 h-[70vmin] w-[70vmin] -translate-x-1/2 -translate-y-1/2 rounded-full" />
-      {/* 로봇 */}
-      <div className="ax-bot-charge absolute inset-0 flex items-center justify-center">
-        <svg
-          viewBox="0 0 240 300"
-          className="h-[72vmin] w-auto drop-shadow-[0_0_24px_rgba(0,212,255,0.55)]"
-          aria-hidden
-        >
-          <g
-            fill="rgba(10, 22, 44, 0.94)"
-            stroke="#00d4ff"
-            strokeWidth="2.5"
-            strokeLinejoin="round"
-          >
-            {/* 몸통 */}
-            <g className="ax-bot-torso">
-              <polygon points="78,78 162,78 152,152 120,168 88,152" />
-              <polygon
-                points="100,86 140,86 134,116 106,116"
-                fill="rgba(124,58,237,0.25)"
-                stroke="#a78bfa"
-                strokeWidth="1.5"
-              />
-              <circle
-                className="ax-bot-core"
-                cx="120"
-                cy="132"
-                r="13"
-                fill="#00d4ff"
-                stroke="#e0faff"
-              />
-            </g>
-            {/* 머리 */}
-            <g className="ax-bot-head">
-              <polygon points="94,28 146,28 156,54 120,70 84,54" />
-              <line x1="120" y1="28" x2="120" y2="12" stroke="#a78bfa" />
-              <circle cx="120" cy="10" r="3" fill="#a78bfa" stroke="none" />
-              <rect
-                className="ax-bot-eye"
-                x="96"
-                y="42"
-                width="16"
-                height="7"
-                rx="2"
-                fill="#00d4ff"
-                stroke="none"
-              />
-              <rect
-                className="ax-bot-eye"
-                x="128"
-                y="42"
-                width="16"
-                height="7"
-                rx="2"
-                fill="#00d4ff"
-                stroke="none"
-              />
-            </g>
-            {/* 왼팔 */}
-            <g className="ax-bot-arm-l">
-              <polygon points="42,74 78,74 76,104 44,104" />
-              <polygon points="46,104 72,104 66,178 44,172" />
-              <circle cx="56" cy="188" r="13" />
-            </g>
-            {/* 오른팔 */}
-            <g className="ax-bot-arm-r">
-              <polygon points="162,74 198,74 196,104 164,104" />
-              <polygon points="168,104 194,104 196,172 174,178" />
-              <circle cx="184" cy="188" r="13" />
-            </g>
-            {/* 왼다리 */}
-            <g className="ax-bot-leg-l">
-              <polygon points="92,168 116,172 112,252 90,248" />
-              <polygon points="82,248 114,252 112,272 80,268" />
-            </g>
-            {/* 오른다리 */}
-            <g className="ax-bot-leg-r">
-              <polygon points="124,172 148,168 150,248 128,252" />
-              <polygon points="126,252 158,248 160,268 128,272" />
-            </g>
-          </g>
-        </svg>
-      </div>
+      <RobotCanvas />
       {/* 상태 텍스트 */}
       <div className="absolute inset-x-0 bottom-[8%] flex justify-center">
         <p className="ax-bot-caption text-[clamp(16px,2.2vw,28px)] font-bold tracking-[0.4em] text-accent">
