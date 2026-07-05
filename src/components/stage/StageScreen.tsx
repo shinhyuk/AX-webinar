@@ -23,10 +23,7 @@ type TheaterStep =
   | { kind: "chat"; who: "host" | "shin"; text: string }
   | { kind: "loading" }
   | { kind: "transform" }
-  | { kind: "qr-corner" }
-  | { kind: "bot"; who: "shin" | "hchat"; text: string }
-  | { kind: "pause" }
-  | { kind: "ppt-only" };
+  | { kind: "qr-corner" };
 
 const THEATER_SCRIPT: TheaterStep[] = [
   { kind: "chat", who: "host", text: "신혁쌤, HRD 발표자료 준비해주세요." },
@@ -42,20 +39,7 @@ const THEATER_SCRIPT: TheaterStep[] = [
   },
   { kind: "loading" },
   { kind: "transform" }, // 변신과 동시에 QR 크게 표시
-  { kind: "qr-corner" },
-  {
-    kind: "bot",
-    who: "hchat",
-    text: "주최측이 보내준 참석자 통계를 기반으로 참석자 페르소나를 정의했습니다. 오늘은 HRD·교육 담당자 중심의 청중이시네요. 눈높이에 맞춰 진행하겠습니다. 🙌",
-  },
-  { kind: "bot", who: "shin", text: "이거 정신 사나우니까 그냥 PPT만 보여줘." },
-  { kind: "pause" },
-  {
-    kind: "bot",
-    who: "hchat",
-    text: "…제가 주인이 아니라, 제 말은 안 듣는군요. 😅",
-  },
-  { kind: "ppt-only" },
+  { kind: "qr-corner" }, // QR을 구석으로 — 이후 채팅창 유지
 ];
 
 type TheaterState = {
@@ -63,8 +47,6 @@ type TheaterState = {
   loading: boolean;
   transformed: boolean;
   qr: "hidden" | "big" | "corner";
-  bubbles: Array<{ who: "shin" | "hchat"; text: string }>;
-  pptOnly: boolean;
 };
 
 function deriveTheater(count: number): TheaterState {
@@ -73,8 +55,6 @@ function deriveTheater(count: number): TheaterState {
     loading: false,
     transformed: false,
     qr: "hidden",
-    bubbles: [],
-    pptOnly: false,
   };
   for (let i = 0; i < Math.min(count, THEATER_SCRIPT.length); i++) {
     const step = THEATER_SCRIPT[i];
@@ -94,17 +74,54 @@ function deriveTheater(count: number): TheaterState {
       case "qr-corner":
         s.qr = "corner";
         break;
-      case "bot":
-        s.bubbles.push({ who: step.who, text: step.text });
-        break;
-      case "pause":
-        break;
-      case "ppt-only":
-        s.pptOnly = true;
-        break;
     }
   }
   return s;
+}
+
+/* ── 타자 효과음 (Web Audio 합성, 음원 파일 불필요) ────── */
+
+let typingAudioCtx: AudioContext | null = null;
+
+function playKeySound() {
+  try {
+    if (typeof window === "undefined") return;
+    if (!typingAudioCtx) {
+      const Ctor =
+        window.AudioContext ??
+        (window as unknown as { webkitAudioContext?: typeof AudioContext })
+          .webkitAudioContext;
+      if (!Ctor) return;
+      typingAudioCtx = new Ctor();
+    }
+    const ctx = typingAudioCtx;
+    if (ctx.state === "suspended") void ctx.resume();
+
+    // 짧은 노이즈 버스트 → 밴드패스 → 감쇠 = 기계식 키보드 틱 소리
+    const dur = 0.035;
+    const buffer = ctx.createBuffer(1, ctx.sampleRate * dur, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < data.length; i++) {
+      data[i] = (Math.random() * 2 - 1) * (1 - i / data.length);
+    }
+    const src = ctx.createBufferSource();
+    src.buffer = buffer;
+    const band = ctx.createBiquadFilter();
+    band.type = "bandpass";
+    band.frequency.value = 1800 + Math.random() * 1600;
+    band.Q.value = 1.2;
+    const gain = ctx.createGain();
+    const t = ctx.currentTime;
+    gain.gain.setValueAtTime(0.12, t);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    src.connect(band);
+    band.connect(gain);
+    gain.connect(ctx.destination);
+    src.start(t);
+    src.stop(t + dur);
+  } catch {
+    // 오디오 미지원/차단 환경에서는 조용히 무시
+  }
 }
 
 /* ── 메인 컴포넌트 ─────────────────────────────────────── */
@@ -127,13 +144,11 @@ export function StageScreen({ demo = false }: { demo?: boolean }) {
 
   const t = deriveTheater(exited ? THEATER_SCRIPT.length : stepIndex);
   const transformed = exited || t.transformed;
-  const pptOnly = exited ? false : t.pptOnly;
   const qrState: "hidden" | "big" | "corner" = exited
     ? demo
       ? "corner"
       : "hidden"
     : t.qr;
-  const bubbles = exited ? [] : t.bubbles;
 
   const advance = useCallback(() => {
     setStepIndex((i) => {
@@ -185,7 +200,7 @@ export function StageScreen({ demo = false }: { demo?: boolean }) {
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [messages, bubbles.length]);
+  }, [messages]);
 
   const showIntro = demo && !exited && (!transformed || transforming);
   const justRevealed = demo && !exited && transformed && !transforming;
@@ -207,23 +222,17 @@ export function StageScreen({ demo = false }: { demo?: boolean }) {
         <div className="ax-flash pointer-events-none absolute inset-0 z-50 bg-white" />
       ) : null}
 
-      <div
-        className={
-          "grid h-full gap-3 " +
-          (pptOnly ? "grid-cols-1" : "grid-cols-[7fr_3fr]")
-        }
-      >
+      <div className="grid h-full grid-cols-[7fr_3fr] gap-3">
         <div className={justRevealed ? "ax-slide-in-left min-h-0" : "min-h-0"}>
           <PptPanel url={cfg?.ppt_embed_url ?? null} />
         </div>
 
-        {!pptOnly ? (
-          <section
-            className={
-              "ax-card flex min-h-0 flex-col overflow-hidden " +
-              (justRevealed ? "ax-slide-in-right" : "")
-            }
-          >
+        <section
+          className={
+            "ax-card flex min-h-0 flex-col overflow-hidden " +
+            (justRevealed ? "ax-slide-in-right" : "")
+          }
+        >
             <header className="flex items-start justify-between border-b border-line px-5 py-3">
               <div>
                 <p className="text-[11px] font-semibold tracking-[0.22em] text-accent">
@@ -247,7 +256,7 @@ export function StageScreen({ demo = false }: { demo?: boolean }) {
             <div className="ax-scroll flex-1 min-h-0 overflow-y-auto px-4 py-4">
               {loading ? (
                 <p className="text-base text-muted">불러오는 중...</p>
-              ) : messages.length === 0 && bubbles.length === 0 ? (
+              ) : messages.length === 0 ? (
                 <div className="flex h-full items-center justify-center">
                   <p className="text-center text-base text-muted">
                     청중 메시지가 여기 표시됩니다
@@ -270,20 +279,11 @@ export function StageScreen({ demo = false }: { demo?: boolean }) {
                       }
                     />
                   ))}
-                  {bubbles.map((b, i) => (
-                    <TheaterBubble
-                      key={`theater-${i}`}
-                      who={b.who}
-                      text={b.text}
-                      animate={i === bubbles.length - 1}
-                    />
-                  ))}
                 </ul>
               )}
               <div ref={endRef} />
             </div>
           </section>
-        ) : null}
       </div>
 
       {/* QR 오버레이 */}
@@ -423,6 +423,7 @@ function IntroTypewriter({ text }: { text: string }) {
     const id = window.setInterval(() => {
       i++;
       setShown(text.slice(0, i));
+      if (text[i - 1] !== " ") playKeySound();
       if (i >= text.length) window.clearInterval(id);
     }, 34);
     return () => window.clearInterval(id);
@@ -434,66 +435,6 @@ function IntroTypewriter({ text }: { text: string }) {
         <span className="ax-caret" aria-hidden />
       ) : null}
     </>
-  );
-}
-
-/* ── 시나리오용 채팅 말풍선 (DB 저장 안 함, 화면 전용) ── */
-
-function TheaterBubble({
-  who,
-  text,
-  animate,
-}: {
-  who: "shin" | "hchat";
-  text: string;
-  animate: boolean;
-}) {
-  const doneRef = useRef(false);
-  if (who === "shin") {
-    return (
-      <li className="ax-fade-in flex items-end gap-2">
-        <div className="w-9 shrink-0">
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#fbbf24] text-sm font-bold text-white">
-            신
-          </div>
-        </div>
-        <div className="flex max-w-[92%] flex-col items-start">
-          <div className="mb-0.5 text-[13px] font-semibold">신혁쌤</div>
-          <p className="whitespace-pre-wrap break-words rounded-2xl rounded-tl-md border border-white/10 bg-white/[0.05] px-4 py-2.5 text-[18px] leading-snug">
-            {text}
-          </p>
-        </div>
-      </li>
-    );
-  }
-  return (
-    <li className="ax-fade-in flex flex-row-reverse items-end gap-2">
-      <div className="w-9 shrink-0">
-        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-cyan-400 to-purple-500 text-[11px] font-bold text-white">
-          H
-        </div>
-      </div>
-      <div className="flex max-w-[92%] flex-col items-end">
-        <div className="mb-0.5 text-[13px] font-semibold text-accent">
-          H Chat
-        </div>
-        <div className="rounded-2xl rounded-tr-md border border-cyan-400/20 bg-cyan-400/5 px-4 py-3">
-          <p className="whitespace-pre-wrap break-words text-[19px] leading-snug">
-            {animate ? (
-              <Typewriter
-                text={text}
-                instant={doneRef.current}
-                onDone={() => {
-                  doneRef.current = true;
-                }}
-              />
-            ) : (
-              text
-            )}
-          </p>
-        </div>
-      </div>
-    </li>
   );
 }
 
