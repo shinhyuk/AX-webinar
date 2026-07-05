@@ -297,6 +297,200 @@ textarea {
   animation: axAssembleRight 0.9s 0.12s cubic-bezier(0.22, 1, 0.3, 1) both;
 }
 
+/* ── Act 1: 우주 하이퍼스페이스 ── */
+@keyframes axNebula {
+  0% { opacity: 0; transform: scale(0.85); }
+  30% { opacity: 1; }
+  100% { opacity: 0.6; transform: scale(1.15); }
+}
+.ax-nebula {
+  background: radial-gradient(
+    circle,
+    rgba(0, 212, 255, 0.25) 0%,
+    rgba(0, 212, 255, 0.07) 45%,
+    transparent 70%
+  );
+  filter: blur(30px);
+  animation: axNebula 3s ease-out forwards;
+}
+
+@keyframes axPlanet {
+  0% {
+    transform: translate(-50%, -50%) translateX(90vw) scale(0.25);
+    opacity: 0;
+  }
+  25% { opacity: 1; }
+  100% {
+    transform: translate(-50%, -50%) translateX(-120vw) scale(1.6);
+    opacity: 0.9;
+  }
+}
+.ax-planet {
+  background:
+    radial-gradient(circle at 32% 30%, rgba(255, 255, 255, 0.55) 0%, transparent 22%),
+    radial-gradient(circle at 35% 35%, #67e8f9 0%, #2563eb 45%, #1e1b4b 78%, #0b0620 100%);
+  box-shadow:
+    0 0 80px rgba(0, 212, 255, 0.45),
+    inset -40px -30px 100px rgba(0, 0, 0, 0.75);
+  animation: axPlanet 3s cubic-bezier(0.3, 0, 0.5, 1) forwards;
+}
+
+@keyframes axSpaceTitle {
+  0% { opacity: 0; transform: scale(0.7); letter-spacing: 0.15em; filter: blur(10px); }
+  35% { opacity: 1; transform: scale(1); filter: blur(0); }
+  80% { opacity: 1; transform: scale(1.06); }
+  100% { opacity: 0; transform: scale(1.35); filter: blur(8px); }
+}
+.ax-space-title {
+  text-shadow:
+    0 0 20px rgba(0, 212, 255, 0.9),
+    0 0 60px rgba(0, 212, 255, 0.5),
+    0 0 120px rgba(124, 58, 237, 0.5);
+  animation: axSpaceTitle 3s ease-in-out forwards;
+}
+@keyframes axSpaceSub {
+  0%, 20% { opacity: 0; transform: translateY(12px); }
+  45% { opacity: 1; transform: none; }
+  85% { opacity: 1; }
+  100% { opacity: 0; }
+}
+.ax-space-sub {
+  animation: axSpaceSub 3s ease-in-out forwards;
+}
+
+/* ── Act 2: 메카 조립 ── */
+.ax-grid-floor {
+  background:
+    repeating-linear-gradient(
+      90deg,
+      rgba(0, 212, 255, 0.22) 0 1px,
+      transparent 1px 60px
+    ),
+    repeating-linear-gradient(
+      0deg,
+      rgba(0, 212, 255, 0.22) 0 1px,
+      transparent 1px 42px
+    );
+  transform: perspective(420px) rotateX(62deg);
+  transform-origin: top;
+  mask-image: linear-gradient(to bottom, transparent 0%, #000 30%, #000 100%);
+  animation: axGridScroll 3.4s linear forwards;
+}
+@keyframes axGridScroll {
+  from { background-position: 0 0, 0 0; opacity: 0; }
+  15% { opacity: 1; }
+  to { background-position: 0 0, 0 340px; opacity: 1; }
+}
+
+@keyframes axBotHalo {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.4); }
+  40% { opacity: 0.9; }
+  100% { opacity: 0.5; transform: translate(-50%, -50%) scale(1.1); }
+}
+.ax-bot-halo {
+  background: radial-gradient(
+    circle,
+    rgba(0, 212, 255, 0.28) 0%,
+    rgba(124, 58, 237, 0.16) 45%,
+    transparent 70%
+  );
+  filter: blur(12px);
+  animation: axBotHalo 3.4s ease-out forwards;
+}
+
+/* 부품 비행 결합 — 몸통/머리/팔/다리 순서로 스태거 */
+@keyframes axBotPartTorso {
+  0% { opacity: 0; transform: translateY(-360px) scale(1.5); }
+  70% { opacity: 1; transform: translateY(8px) scale(0.98); }
+  100% { opacity: 1; transform: none; }
+}
+.ax-bot-torso { animation: axBotPartTorso 0.5s 0.1s cubic-bezier(0.2, 0.9, 0.3, 1.2) both; }
+
+@keyframes axBotPartHead {
+  0% { opacity: 0; transform: translateY(-260px) rotate(-24deg); }
+  70% { opacity: 1; transform: translateY(6px) rotate(3deg); }
+  100% { opacity: 1; transform: none; }
+}
+.ax-bot-head { animation: axBotPartHead 0.45s 0.55s cubic-bezier(0.2, 0.9, 0.3, 1.2) both; }
+
+@keyframes axBotPartArmL {
+  0% { opacity: 0; transform: translateX(-320px) rotate(38deg); }
+  70% { opacity: 1; transform: translateX(6px) rotate(-4deg); }
+  100% { opacity: 1; transform: none; }
+}
+.ax-bot-arm-l { animation: axBotPartArmL 0.45s 0.85s cubic-bezier(0.2, 0.9, 0.3, 1.2) both; }
+
+@keyframes axBotPartArmR {
+  0% { opacity: 0; transform: translateX(320px) rotate(-38deg); }
+  70% { opacity: 1; transform: translateX(-6px) rotate(4deg); }
+  100% { opacity: 1; transform: none; }
+}
+.ax-bot-arm-r { animation: axBotPartArmR 0.45s 1.0s cubic-bezier(0.2, 0.9, 0.3, 1.2) both; }
+
+@keyframes axBotPartLegL {
+  0% { opacity: 0; transform: translateY(300px) translateX(-120px) rotate(-18deg); }
+  70% { opacity: 1; transform: translateY(-6px); }
+  100% { opacity: 1; transform: none; }
+}
+.ax-bot-leg-l { animation: axBotPartLegL 0.45s 1.2s cubic-bezier(0.2, 0.9, 0.3, 1.2) both; }
+
+@keyframes axBotPartLegR {
+  0% { opacity: 0; transform: translateY(300px) translateX(120px) rotate(18deg); }
+  70% { opacity: 1; transform: translateY(-6px); }
+  100% { opacity: 1; transform: none; }
+}
+.ax-bot-leg-r { animation: axBotPartLegR 0.45s 1.35s cubic-bezier(0.2, 0.9, 0.3, 1.2) both; }
+
+/* 눈 점등 (1.9s 시점 플리커) */
+@keyframes axBotEye {
+  0%, 55% { opacity: 0; }
+  58% { opacity: 1; }
+  61% { opacity: 0.2; }
+  64% { opacity: 1; }
+  68% { opacity: 0.4; }
+  72%, 100% { opacity: 1; }
+}
+.ax-bot-eye {
+  filter: drop-shadow(0 0 6px #00d4ff) drop-shadow(0 0 14px #00d4ff);
+  animation: axBotEye 3.4s linear both;
+}
+
+/* 가슴 코어 펄스 */
+@keyframes axBotCore {
+  0%, 50% { opacity: 0.25; }
+  60% { opacity: 1; }
+  70% { opacity: 0.5; }
+  80% { opacity: 1; }
+  90% { opacity: 0.7; }
+  100% { opacity: 1; }
+}
+.ax-bot-core {
+  filter: drop-shadow(0 0 8px #00d4ff) drop-shadow(0 0 20px rgba(0, 212, 255, 0.8));
+  animation: axBotCore 3.4s ease-in-out both;
+}
+
+/* 완성 후 카메라 향해 차지 & 돌진 (2.6s~) */
+@keyframes axBotCharge {
+  0%, 76% { transform: none; filter: none; }
+  82% { transform: scale(1.05); }
+  88% { transform: scale(1.02); filter: brightness(1.3); }
+  100% { transform: scale(3.2); filter: brightness(3) blur(6px); opacity: 0.9; }
+}
+.ax-bot-charge {
+  animation: axBotCharge 3.4s cubic-bezier(0.6, 0, 0.9, 0.4) both;
+}
+
+@keyframes axBotCaption {
+  0%, 55% { opacity: 0; transform: translateY(14px); }
+  70% { opacity: 1; transform: none; }
+  92% { opacity: 1; }
+  100% { opacity: 0; }
+}
+.ax-bot-caption {
+  text-shadow: 0 0 16px rgba(0, 212, 255, 0.8);
+  animation: axBotCaption 3.4s ease-out both;
+}
+
 /* 패널 착지 시 화면 진동 */
 @keyframes axSettleShake {
   0%, 54% { transform: none; }
