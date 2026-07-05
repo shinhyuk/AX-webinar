@@ -209,6 +209,7 @@ export function StageScreen({ demo = false }: { demo?: boolean }) {
         lines={t.introLines}
         loading={t.loading}
         glitching={transforming}
+        onAdvance={advance}
       />
     );
   }
@@ -323,6 +324,28 @@ export function StageScreen({ demo = false }: { demo?: boolean }) {
           </p>
         </div>
       ) : null}
+
+      {/* 데모 진행 버튼 (발표자용) */}
+      {demo && !exited ? (
+        <div className="absolute bottom-6 right-6 z-50 flex items-center gap-2">
+          <button
+            type="button"
+            onClick={back}
+            aria-label="이전"
+            className="ax-btn-ghost flex h-11 w-11 items-center justify-center rounded-full text-lg"
+          >
+            ‹
+          </button>
+          <button
+            type="button"
+            onClick={advance}
+            disabled={stepIndex >= THEATER_SCRIPT.length}
+            className="ax-btn h-11 rounded-full px-6 text-[15px]"
+          >
+            다음 ›
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -333,10 +356,12 @@ function IntroChat({
   lines,
   loading,
   glitching,
+  onAdvance,
 }: {
   lines: Array<{ who: "host" | "shin"; text: string }>;
   loading: boolean;
   glitching: boolean;
+  onAdvance: () => void;
 }) {
   const endRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
@@ -345,8 +370,9 @@ function IntroChat({
 
   return (
     <div
+      onClick={onAdvance}
       className={
-        "flex h-[100dvh] flex-col bg-background " +
+        "flex h-[100dvh] cursor-pointer flex-col bg-background " +
         (glitching ? "ax-glitch-out" : "")
       }
     >
@@ -421,8 +447,17 @@ function IntroChat({
         <div ref={endRef} />
       </div>
 
-      <footer className="px-6 pb-4 text-right text-[11px] text-muted/40">
-        → 다음
+      <footer className="flex justify-end px-6 pb-5">
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onAdvance();
+          }}
+          className="ax-btn h-11 rounded-full px-6 text-[15px]"
+        >
+          다음 ›
+        </button>
       </footer>
     </div>
   );
