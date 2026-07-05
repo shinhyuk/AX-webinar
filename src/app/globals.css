@@ -142,6 +142,53 @@ textarea {
   animation: axFadeIn 240ms ease-out;
 }
 
+/* 데모 시나리오(트랜스포머 변신) 연출 */
+@keyframes axGlitchOut {
+  0% { opacity: 1; transform: none; filter: none; }
+  15% { transform: translateX(-6px) skewX(-2deg); filter: hue-rotate(40deg); }
+  30% { transform: translateX(8px) skewX(3deg) scale(1.01); opacity: 0.9; }
+  45% { transform: translateX(-10px) scale(0.99); filter: hue-rotate(-60deg) saturate(3); }
+  60% { transform: translateX(6px) skewX(-4deg) scale(1.03); opacity: 0.7; }
+  75% { transform: scale(0.9); filter: blur(2px) brightness(1.6); opacity: 0.5; }
+  100% { transform: scale(1.35); filter: blur(14px) brightness(2.4); opacity: 0; }
+}
+.ax-glitch-out {
+  animation: axGlitchOut 1.3s ease-in forwards;
+}
+
+@keyframes axFlashIn {
+  0% { opacity: 0; }
+  15% { opacity: 1; }
+  100% { opacity: 0; }
+}
+.ax-flash {
+  animation: axFlashIn 1.2s ease-out forwards;
+}
+
+@keyframes axSlideInLeft {
+  from { opacity: 0; transform: translateX(-56px) scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes axSlideInRight {
+  from { opacity: 0; transform: translateX(56px) scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+.ax-slide-in-left {
+  animation: axSlideInLeft 0.7s 0.15s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.ax-slide-in-right {
+  animation: axSlideInRight 0.7s 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes axPopIn {
+  0% { opacity: 0; transform: scale(0.7); }
+  70% { opacity: 1; transform: scale(1.04); }
+  100% { opacity: 1; transform: scale(1); }
+}
+.ax-pop-in {
+  animation: axPopIn 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
 @keyframes axCaretBlink {
   0%, 49% { opacity: 1; }
   50%, 100% { opacity: 0; }
