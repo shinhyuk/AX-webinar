@@ -215,6 +215,24 @@ export function StageScreen({ demo = false }: { demo?: boolean }) {
     setTypedIds(new Set(initialIdsRef.current));
   }, [loading, messages]);
 
+  // 채팅은 항상 최신(하단)이 보이도록 — 새 메시지·타이핑 애니메이션으로
+  // 내용 높이가 변할 때마다 스크롤을 바닥에 고정
+  const chatScrollRef = useRef<HTMLDivElement | null>(null);
+  const chatContentRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const box = chatScrollRef.current;
+    const content = chatContentRef.current;
+    if (!box || !content) return;
+    const stick = () => {
+      box.scrollTop = box.scrollHeight;
+    };
+    stick();
+    const ro = new ResizeObserver(stick);
+    ro.observe(content);
+    ro.observe(box);
+    return () => ro.disconnect();
+  }, [loading]);
+
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages]);
@@ -241,7 +259,11 @@ export function StageScreen({ demo = false }: { demo?: boolean }) {
 
       <div className="grid h-full grid-cols-[7fr_3fr] gap-3">
         <div className={justRevealed ? "ax-slide-in-left min-h-0" : "min-h-0"}>
-          <PptPanel url={pptUrl} frameRef={pptFrameRef} />
+          <PptPanel
+            url={pptUrl}
+            frameRef={pptFrameRef}
+            keysEnabled={scriptDone}
+          />
         </div>
 
         <section
@@ -270,35 +292,40 @@ export function StageScreen({ demo = false }: { demo?: boolean }) {
               </div>
             </header>
             <TopQuestions messages={messages} />
-            <div className="ax-scroll flex-1 min-h-0 overflow-y-auto px-4 py-4">
-              {loading ? (
-                <p className="text-base text-muted">불러오는 중...</p>
-              ) : messages.length === 0 ? (
-                <div className="flex h-full items-center justify-center">
-                  <p className="text-center text-base text-muted">
-                    청중 메시지가 여기 표시됩니다
-                  </p>
-                </div>
-              ) : (
-                <ul className="flex flex-col gap-4">
-                  {messages.map((m) => (
-                    <StageItem
-                      key={m.id}
-                      message={m}
-                      alreadyTyped={!!m.answer && typedIds.has(m.id)}
-                      onTyped={() =>
-                        setTypedIds((prev) => {
-                          if (prev.has(m.id)) return prev;
-                          const next = new Set(prev);
-                          next.add(m.id);
-                          return next;
-                        })
-                      }
-                    />
-                  ))}
-                </ul>
-              )}
-              <div ref={endRef} />
+            <div
+              ref={chatScrollRef}
+              className="ax-scroll flex-1 min-h-0 overflow-y-auto px-4 py-4"
+            >
+              <div ref={chatContentRef} className="flex min-h-full flex-col">
+                {loading ? (
+                  <p className="text-base text-muted">불러오는 중...</p>
+                ) : messages.length === 0 ? (
+                  <div className="flex flex-1 items-center justify-center">
+                    <p className="text-center text-base text-muted">
+                      청중 메시지가 여기 표시됩니다
+                    </p>
+                  </div>
+                ) : (
+                  <ul className="mt-auto flex flex-col gap-4">
+                    {messages.map((m) => (
+                      <StageItem
+                        key={m.id}
+                        message={m}
+                        alreadyTyped={!!m.answer && typedIds.has(m.id)}
+                        onTyped={() =>
+                          setTypedIds((prev) => {
+                            if (prev.has(m.id)) return prev;
+                            const next = new Set(prev);
+                            next.add(m.id);
+                            return next;
+                          })
+                        }
+                      />
+                    ))}
+                  </ul>
+                )}
+                <div ref={endRef} />
+              </div>
             </div>
           </section>
       </div>
@@ -533,12 +560,22 @@ function colorFromKey(key: string): string {
   return palette[Math.abs(hash) % palette.length];
 }
 
+function isPdfUrl(url: string): boolean {
+  try {
+    return new URL(url).pathname.toLowerCase().endsWith(".pdf");
+  } catch {
+    return /\.pdf(\?|#|$)/i.test(url);
+  }
+}
+
 function PptPanel({
   url,
   frameRef,
+  keysEnabled,
 }: {
   url: string | null;
   frameRef?: React.Ref<HTMLIFrameElement>;
+  keysEnabled: boolean;
 }) {
   if (!url) {
     return (
@@ -548,11 +585,14 @@ function PptPanel({
             PPT EMBED
           </p>
           <p className="mt-2 text-base">
-            /control에서 PPT를 업로드하면 여기에 표시됩니다.
+            /control에서 발표자료를 업로드하면 여기에 표시됩니다.
           </p>
         </div>
       </section>
     );
+  }
+  if (isPdfUrl(url)) {
+    return <PdfSlides url={url} keysEnabled={keysEnabled} />;
   }
   return (
     <section className="ax-card h-full overflow-hidden">
@@ -564,6 +604,183 @@ function PptPanel({
         allow="fullscreen"
         title="presentation"
       />
+    </section>
+  );
+}
+
+/* ── PDF 자체 뷰어 — 페이지 넘김을 부모 창에서 직접 제어
+      (iframe 포커스 문제 없이 리모컨 방향키가 항상 동작) ── */
+
+type PdfDoc = {
+  numPages: number;
+  getPage: (n: number) => Promise<{
+    getViewport: (opts: { scale: number }) => {
+      width: number;
+      height: number;
+    };
+    render: (opts: {
+      canvasContext: CanvasRenderingContext2D;
+      viewport: { width: number; height: number };
+    }) => { promise: Promise<void>; cancel: () => void };
+  }>;
+  destroy: () => void;
+};
+
+function PdfSlides({
+  url,
+  keysEnabled,
+}: {
+  url: string;
+  keysEnabled: boolean;
+}) {
+  const boxRef = useRef<HTMLDivElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const docRef = useRef<PdfDoc | null>(null);
+  const renderTaskRef = useRef<{ cancel: () => void } | null>(null);
+  const [numPages, setNumPages] = useState(0);
+  const [page, setPage] = useState(1);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const pdfjs = await import("pdfjs-dist");
+        pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+          "pdfjs-dist/build/pdf.worker.min.mjs",
+          import.meta.url,
+        ).toString();
+        const doc = (await pdfjs.getDocument({ url })
+          .promise) as unknown as PdfDoc;
+        if (cancelled) {
+          doc.destroy();
+          return;
+        }
+        docRef.current = doc;
+        setNumPages(doc.numPages);
+        setPage(1);
+      } catch {
+        if (!cancelled) setError("PDF를 불러오지 못했습니다.");
+      }
+    })();
+    return () => {
+      cancelled = true;
+      renderTaskRef.current?.cancel();
+      docRef.current?.destroy();
+      docRef.current = null;
+    };
+  }, [url]);
+
+  const renderPage = useCallback(async () => {
+    const doc = docRef.current;
+    const canvas = canvasRef.current;
+    const box = boxRef.current;
+    if (!doc || !canvas || !box) return;
+    try {
+      const p = await doc.getPage(page);
+      const base = p.getViewport({ scale: 1 });
+      const fit = Math.min(
+        box.clientWidth / base.width,
+        box.clientHeight / base.height,
+      );
+      const dpr = window.devicePixelRatio || 1;
+      const viewport = p.getViewport({ scale: fit * dpr });
+      canvas.width = Math.floor(viewport.width);
+      canvas.height = Math.floor(viewport.height);
+      canvas.style.width = `${viewport.width / dpr}px`;
+      canvas.style.height = `${viewport.height / dpr}px`;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      renderTaskRef.current?.cancel();
+      const task = p.render({ canvasContext: ctx, viewport });
+      renderTaskRef.current = task;
+      await task.promise.catch(() => {});
+    } catch {
+      // 페이지 전환 중 취소 등은 무시
+    }
+  }, [page]);
+
+  useEffect(() => {
+    if (numPages > 0) void renderPage();
+  }, [numPages, renderPage]);
+
+  // 패널 크기가 바뀌면 다시 맞춰 렌더
+  useEffect(() => {
+    const box = boxRef.current;
+    if (!box) return;
+    const ro = new ResizeObserver(() => void renderPage());
+    ro.observe(box);
+    return () => ro.disconnect();
+  }, [renderPage]);
+
+  const numPagesRef = useRef(numPages);
+  numPagesRef.current = numPages;
+  const go = useCallback((delta: number) => {
+    setPage((p) => Math.min(Math.max(1, p + delta), numPagesRef.current || 1));
+  }, []);
+
+  // 리모컨/키보드 페이지 넘김 — 부모 창에서 직접 처리
+  useEffect(() => {
+    if (!keysEnabled) return;
+    const NEXT = ["ArrowRight", "ArrowDown", "PageDown", " ", "Enter"];
+    const PREV = ["ArrowLeft", "ArrowUp", "PageUp"];
+    const onKey = (e: KeyboardEvent) => {
+      if (NEXT.includes(e.key)) {
+        e.preventDefault();
+        go(1);
+      } else if (PREV.includes(e.key)) {
+        e.preventDefault();
+        go(-1);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [keysEnabled, go]);
+
+  return (
+    <section className="ax-card relative h-full min-h-0 overflow-hidden">
+      <div
+        ref={boxRef}
+        className="flex h-full w-full cursor-pointer items-center justify-center bg-black/30"
+        onClick={() => go(1)}
+      >
+        {error ? (
+          <p className="text-base text-muted">{error}</p>
+        ) : numPages === 0 ? (
+          <p className="text-base text-muted">발표자료 불러오는 중...</p>
+        ) : (
+          <canvas ref={canvasRef} />
+        )}
+      </div>
+      {numPages > 0 ? (
+        <div className="absolute bottom-4 right-4 z-20 flex items-center gap-1.5 rounded-full bg-black/50 px-2 py-1.5 backdrop-blur">
+          <button
+            type="button"
+            aria-label="이전 슬라이드"
+            onClick={(e) => {
+              e.stopPropagation();
+              go(-1);
+            }}
+            className="ax-btn-ghost flex h-8 w-8 items-center justify-center rounded-full text-base"
+          >
+            ‹
+          </button>
+          <span className="min-w-[52px] text-center text-[12px] font-semibold tabular-nums text-foreground/80">
+            {page} / {numPages}
+          </span>
+          <button
+            type="button"
+            aria-label="다음 슬라이드"
+            onClick={(e) => {
+              e.stopPropagation();
+              go(1);
+            }}
+            className="ax-btn-ghost flex h-8 w-8 items-center justify-center rounded-full text-base"
+          >
+            ›
+          </button>
+        </div>
+      ) : null}
     </section>
   );
 }

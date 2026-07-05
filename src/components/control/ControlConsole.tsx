@@ -181,16 +181,17 @@ function SettingsPanel() {
 
         <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
           <label className="text-xs font-medium text-muted">
-            PPT 업로드 (.pptx / .ppt)
+            발표자료 업로드 (.pdf 권장 / .pptx / .ppt)
           </label>
           <p className="mt-0.5 text-[11px] text-muted/70">
-            업로드하면 Microsoft Office Online 뷰어로 자동 임베드됩니다. 애니메이션 그대로 보존.
+            PDF는 자체 뷰어로 표시되어 리모컨(방향키)으로 바로 넘길 수 있습니다.
+            ppt/pptx는 Office Online 뷰어로 임베드됩니다 (넘김은 뷰어 클릭 필요).
           </p>
           <div className="mt-3 flex items-center gap-2">
             <input
               ref={fileInputRef}
               type="file"
-              accept=".pptx,.ppt"
+              accept=".pdf,.pptx,.ppt"
               disabled={uploading}
               onChange={(e) => {
                 const f = e.target.files?.[0];
