@@ -142,7 +142,9 @@ function playKeySound() {
   }
 }
 
-/** 변신 시퀀스 사운드: 라이저 → 붐 → 금속 클랭크 → 베이스 드롭 (~2.7초) */
+/** 변신 시퀀스 사운드트랙 (~10초):
+ *  글리치 라이저 → 하이퍼스페이스 드론+스파클 → 로봇 서보/클랭크
+ *  → 파워업 코드 → 차지 라이저 → 대폭발 → 패널 클랭크 → 베이스 드롭 */
 function playTransformSound() {
   try {
     const ctx = getAudioCtx();
@@ -152,67 +154,13 @@ function playTransformSound() {
     out.gain.value = 1;
     out.connect(ctx.destination);
 
-    // 1) 라이저: 상승하는 톱니파 + 필터 스윕 (0 ~ 1.7s)
-    const riser = ctx.createOscillator();
-    riser.type = "sawtooth";
-    riser.frequency.setValueAtTime(65, t);
-    riser.frequency.exponentialRampToValueAtTime(900, t + 1.6);
-    const riserFilter = ctx.createBiquadFilter();
-    riserFilter.type = "lowpass";
-    riserFilter.frequency.setValueAtTime(300, t);
-    riserFilter.frequency.exponentialRampToValueAtTime(7000, t + 1.6);
-    const riserGain = ctx.createGain();
-    riserGain.gain.setValueAtTime(0.001, t);
-    riserGain.gain.exponentialRampToValueAtTime(0.14, t + 1.4);
-    riserGain.gain.exponentialRampToValueAtTime(0.001, t + 1.75);
-    riser.connect(riserFilter);
-    riserFilter.connect(riserGain);
-    riserGain.connect(out);
-    riser.start(t);
-    riser.stop(t + 1.8);
-
-    // 라이저에 섞이는 노이즈 스윕
-    const sweep = ctx.createBufferSource();
-    sweep.buffer = makeNoiseBuffer(ctx, 1.8);
-    const sweepBand = ctx.createBiquadFilter();
-    sweepBand.type = "bandpass";
-    sweepBand.Q.value = 1.4;
-    sweepBand.frequency.setValueAtTime(250, t);
-    sweepBand.frequency.exponentialRampToValueAtTime(7500, t + 1.6);
-    const sweepGain = ctx.createGain();
-    sweepGain.gain.setValueAtTime(0.001, t);
-    sweepGain.gain.exponentialRampToValueAtTime(0.1, t + 1.5);
-    sweepGain.gain.exponentialRampToValueAtTime(0.001, t + 1.75);
-    sweep.connect(sweepBand);
-    sweepBand.connect(sweepGain);
-    sweepGain.connect(out);
-    sweep.start(t);
-    sweep.stop(t + 1.8);
-
-    // 2) 워프 진입 붐 (0.8s 시점)
-    const boom = ctx.createOscillator();
-    boom.type = "sine";
-    boom.frequency.setValueAtTime(160, t + 0.8);
-    boom.frequency.exponentialRampToValueAtTime(36, t + 1.5);
-    const boomGain = ctx.createGain();
-    boomGain.gain.setValueAtTime(0.001, t + 0.78);
-    boomGain.gain.exponentialRampToValueAtTime(0.4, t + 0.84);
-    boomGain.gain.exponentialRampToValueAtTime(0.001, t + 1.7);
-    boom.connect(boomGain);
-    boomGain.connect(out);
-    boom.start(t + 0.78);
-    boom.stop(t + 1.75);
-
-    // 3) 패널 조립 금속 클랭크 3연타 (1.75 / 1.95 / 2.15s)
-    const clankFreqs = [720, 540, 880];
-    clankFreqs.forEach((freq, i) => {
-      const at = t + 1.75 + i * 0.2;
+    const clank = (at: number, freq: number, vol = 0.16) => {
       const hit = ctx.createOscillator();
       hit.type = "square";
       hit.frequency.setValueAtTime(freq, at);
       hit.frequency.exponentialRampToValueAtTime(freq * 0.55, at + 0.09);
       const hitGain = ctx.createGain();
-      hitGain.gain.setValueAtTime(0.16, at);
+      hitGain.gain.setValueAtTime(vol, at);
       hitGain.gain.exponentialRampToValueAtTime(0.001, at + 0.13);
       const hitBand = ctx.createBiquadFilter();
       hitBand.type = "bandpass";
@@ -223,35 +171,202 @@ function playTransformSound() {
       hitGain.connect(out);
       hit.start(at);
       hit.stop(at + 0.15);
-
       const click = ctx.createBufferSource();
       click.buffer = makeNoiseBuffer(ctx, 0.05);
       const clickHp = ctx.createBiquadFilter();
       clickHp.type = "highpass";
       clickHp.frequency.value = 3000;
       const clickGain = ctx.createGain();
-      clickGain.gain.setValueAtTime(0.12, at);
+      clickGain.gain.setValueAtTime(vol * 0.8, at);
       clickGain.gain.exponentialRampToValueAtTime(0.001, at + 0.05);
       click.connect(clickHp);
       clickHp.connect(clickGain);
       clickGain.connect(out);
       click.start(at);
       click.stop(at + 0.06);
+    };
+
+    // ── 0~1.0s: 글리치 라이저
+    const riser = ctx.createOscillator();
+    riser.type = "sawtooth";
+    riser.frequency.setValueAtTime(65, t);
+    riser.frequency.exponentialRampToValueAtTime(700, t + 0.95);
+    const riserFilter = ctx.createBiquadFilter();
+    riserFilter.type = "lowpass";
+    riserFilter.frequency.setValueAtTime(300, t);
+    riserFilter.frequency.exponentialRampToValueAtTime(6000, t + 0.95);
+    const riserGain = ctx.createGain();
+    riserGain.gain.setValueAtTime(0.001, t);
+    riserGain.gain.exponentialRampToValueAtTime(0.13, t + 0.85);
+    riserGain.gain.exponentialRampToValueAtTime(0.001, t + 1.05);
+    riser.connect(riserFilter);
+    riserFilter.connect(riserGain);
+    riserGain.connect(out);
+    riser.start(t);
+    riser.stop(t + 1.1);
+
+    // ── 1.0~4.0s: 하이퍼스페이스 — 우주 드론 + 워프 노이즈 + 스파클
+    const drone = ctx.createOscillator();
+    drone.type = "sine";
+    drone.frequency.setValueAtTime(48, t + 1.0);
+    drone.frequency.linearRampToValueAtTime(60, t + 4.0);
+    const droneGain = ctx.createGain();
+    droneGain.gain.setValueAtTime(0.001, t + 1.0);
+    droneGain.gain.exponentialRampToValueAtTime(0.16, t + 1.4);
+    droneGain.gain.exponentialRampToValueAtTime(0.001, t + 4.1);
+    drone.connect(droneGain);
+    droneGain.connect(out);
+    drone.start(t + 1.0);
+    drone.stop(t + 4.15);
+
+    const warpNoise = ctx.createBufferSource();
+    warpNoise.buffer = makeNoiseBuffer(ctx, 3.2);
+    const warpLp = ctx.createBiquadFilter();
+    warpLp.type = "lowpass";
+    warpLp.frequency.setValueAtTime(900, t + 1.0);
+    warpLp.frequency.exponentialRampToValueAtTime(5200, t + 3.9);
+    const warpGain = ctx.createGain();
+    warpGain.gain.setValueAtTime(0.001, t + 1.0);
+    warpGain.gain.exponentialRampToValueAtTime(0.09, t + 1.5);
+    warpGain.gain.exponentialRampToValueAtTime(0.13, t + 3.8);
+    warpGain.gain.exponentialRampToValueAtTime(0.001, t + 4.1);
+    warpNoise.connect(warpLp);
+    warpLp.connect(warpGain);
+    warpGain.connect(out);
+    warpNoise.start(t + 1.0);
+    warpNoise.stop(t + 4.2);
+
+    // 별 스파클 핑
+    [1.6, 2.1, 2.5, 3.0, 3.4].forEach((d, i) => {
+      const ping = ctx.createOscillator();
+      ping.type = "sine";
+      const f = 1200 + i * 260;
+      ping.frequency.setValueAtTime(f, t + d);
+      ping.frequency.exponentialRampToValueAtTime(f * 1.6, t + d + 0.12);
+      const pingGain = ctx.createGain();
+      pingGain.gain.setValueAtTime(0.05, t + d);
+      pingGain.gain.exponentialRampToValueAtTime(0.001, t + d + 0.25);
+      ping.connect(pingGain);
+      pingGain.connect(out);
+      ping.start(t + d);
+      ping.stop(t + d + 0.3);
     });
 
-    // 4) 마무리 베이스 드롭 (2.35s)
+    // ── 4.0~6.0s: 로봇 부품 서보 + 결합 클랭크
+    [4.15, 4.5, 4.8, 5.0, 5.2, 5.4].forEach((d, i) => {
+      const servo = ctx.createOscillator();
+      servo.type = "square";
+      const f0 = 340 - i * 18;
+      servo.frequency.setValueAtTime(f0, t + d);
+      servo.frequency.exponentialRampToValueAtTime(f0 * 0.4, t + d + 0.2);
+      const servoGain = ctx.createGain();
+      servoGain.gain.setValueAtTime(0.06, t + d);
+      servoGain.gain.exponentialRampToValueAtTime(0.001, t + d + 0.22);
+      const servoLp = ctx.createBiquadFilter();
+      servoLp.type = "lowpass";
+      servoLp.frequency.value = 1500;
+      servo.connect(servoLp);
+      servoLp.connect(servoGain);
+      servoGain.connect(out);
+      servo.start(t + d);
+      servo.stop(t + d + 0.25);
+      clank(t + d + 0.2, 600 + (i % 3) * 140, 0.13);
+    });
+
+    // ── 5.9s: 눈 점등 핑 + 파워업 코드
+    const eye = ctx.createOscillator();
+    eye.type = "sine";
+    eye.frequency.setValueAtTime(1500, t + 5.9);
+    eye.frequency.exponentialRampToValueAtTime(2400, t + 6.05);
+    const eyeGain = ctx.createGain();
+    eyeGain.gain.setValueAtTime(0.09, t + 5.9);
+    eyeGain.gain.exponentialRampToValueAtTime(0.001, t + 6.2);
+    eye.connect(eyeGain);
+    eyeGain.connect(out);
+    eye.start(t + 5.9);
+    eye.stop(t + 6.25);
+
+    [220, 277.18, 329.63].forEach((f) => {
+      const osc = ctx.createOscillator();
+      osc.type = "sawtooth";
+      osc.frequency.setValueAtTime(f, t + 6.0);
+      osc.frequency.exponentialRampToValueAtTime(f * 2, t + 7.3);
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.001, t + 6.0);
+      g.gain.exponentialRampToValueAtTime(0.055, t + 6.3);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 7.45);
+      const lp = ctx.createBiquadFilter();
+      lp.type = "lowpass";
+      lp.frequency.setValueAtTime(800, t + 6.0);
+      lp.frequency.exponentialRampToValueAtTime(5000, t + 7.3);
+      osc.connect(lp);
+      lp.connect(g);
+      g.connect(out);
+      osc.start(t + 6.0);
+      osc.stop(t + 7.5);
+    });
+
+    // ── 6.6~7.4s: 차지 라이저
+    const charge = ctx.createOscillator();
+    charge.type = "sawtooth";
+    charge.frequency.setValueAtTime(120, t + 6.6);
+    charge.frequency.exponentialRampToValueAtTime(1100, t + 7.4);
+    const chargeGain = ctx.createGain();
+    chargeGain.gain.setValueAtTime(0.001, t + 6.6);
+    chargeGain.gain.exponentialRampToValueAtTime(0.14, t + 7.35);
+    chargeGain.gain.exponentialRampToValueAtTime(0.001, t + 7.5);
+    charge.connect(chargeGain);
+    chargeGain.connect(out);
+    charge.start(t + 6.6);
+    charge.stop(t + 7.55);
+
+    // ── 7.45s: 대폭발
+    const boom = ctx.createOscillator();
+    boom.type = "sine";
+    boom.frequency.setValueAtTime(170, t + 7.45);
+    boom.frequency.exponentialRampToValueAtTime(30, t + 8.3);
+    const boomGain = ctx.createGain();
+    boomGain.gain.setValueAtTime(0.001, t + 7.43);
+    boomGain.gain.exponentialRampToValueAtTime(0.45, t + 7.5);
+    boomGain.gain.exponentialRampToValueAtTime(0.001, t + 8.5);
+    boom.connect(boomGain);
+    boomGain.connect(out);
+    boom.start(t + 7.43);
+    boom.stop(t + 8.55);
+
+    const crash = ctx.createBufferSource();
+    crash.buffer = makeNoiseBuffer(ctx, 0.9);
+    const crashLp = ctx.createBiquadFilter();
+    crashLp.type = "lowpass";
+    crashLp.frequency.setValueAtTime(6500, t + 7.45);
+    crashLp.frequency.exponentialRampToValueAtTime(250, t + 8.3);
+    const crashGain = ctx.createGain();
+    crashGain.gain.setValueAtTime(0.3, t + 7.45);
+    crashGain.gain.exponentialRampToValueAtTime(0.001, t + 8.35);
+    crash.connect(crashLp);
+    crashLp.connect(crashGain);
+    crashGain.connect(out);
+    crash.start(t + 7.45);
+    crash.stop(t + 8.4);
+
+    // ── 8.55~9.0s: 패널 결합 클랭크 3연타
+    clank(t + 8.55, 720);
+    clank(t + 8.75, 540);
+    clank(t + 8.95, 880);
+
+    // ── 9.1s: 마무리 베이스 드롭
     const drop = ctx.createOscillator();
     drop.type = "sine";
-    drop.frequency.setValueAtTime(95, t + 2.35);
-    drop.frequency.exponentialRampToValueAtTime(42, t + 2.9);
+    drop.frequency.setValueAtTime(95, t + 9.1);
+    drop.frequency.exponentialRampToValueAtTime(42, t + 9.7);
     const dropGain = ctx.createGain();
-    dropGain.gain.setValueAtTime(0.001, t + 2.33);
-    dropGain.gain.exponentialRampToValueAtTime(0.32, t + 2.4);
-    dropGain.gain.exponentialRampToValueAtTime(0.001, t + 3.05);
+    dropGain.gain.setValueAtTime(0.001, t + 9.08);
+    dropGain.gain.exponentialRampToValueAtTime(0.32, t + 9.15);
+    dropGain.gain.exponentialRampToValueAtTime(0.001, t + 9.85);
     drop.connect(dropGain);
     dropGain.connect(out);
-    drop.start(t + 2.33);
-    drop.stop(t + 3.1);
+    drop.start(t + 9.08);
+    drop.stop(t + 9.9);
   } catch {
     // 오디오 미지원/차단 환경에서는 조용히 무시
   }
@@ -272,9 +387,10 @@ export function StageScreen({ demo = false }: { demo?: boolean }) {
 
   // 시나리오 상태
   const [stepIndex, setStepIndex] = useState(0);
-  // 변신 시퀀스: glitch(붕괴) → warp(에너지 폭발) → assemble(패널 조립) → none
+  // 변신 시퀀스(~10초): glitch(붕괴) → space(하이퍼스페이스) → robot(메카 조립)
+  // → burst(대폭발) → assemble(패널 조립) → none
   const [transformPhase, setTransformPhase] = useState<
-    "none" | "glitch" | "warp" | "assemble"
+    "none" | "glitch" | "space" | "robot" | "burst" | "assemble"
   >("none");
   const [exited, setExited] = useState(!demo);
   const transformTimersRef = useRef<number[]>([]);
@@ -301,9 +417,11 @@ export function StageScreen({ demo = false }: { demo?: boolean }) {
         playTransformSound();
         setTransformPhase("glitch");
         transformTimersRef.current = [
-          window.setTimeout(() => setTransformPhase("warp"), 800),
-          window.setTimeout(() => setTransformPhase("assemble"), 1750),
-          window.setTimeout(() => setTransformPhase("none"), 2800),
+          window.setTimeout(() => setTransformPhase("space"), 1000),
+          window.setTimeout(() => setTransformPhase("robot"), 4000),
+          window.setTimeout(() => setTransformPhase("burst"), 7400),
+          window.setTimeout(() => setTransformPhase("assemble"), 8450),
+          window.setTimeout(() => setTransformPhase("none"), 9600),
         ];
       }
       return i + 1;
@@ -411,7 +529,9 @@ export function StageScreen({ demo = false }: { demo?: boolean }) {
         (assembling ? " ax-settle-shake" : "")
       }
     >
-      {transformPhase === "warp" ? <WarpOverlay /> : null}
+      {transformPhase === "space" ? <SpaceScene /> : null}
+      {transformPhase === "robot" ? <RobotScene /> : null}
+      {transformPhase === "burst" ? <WarpOverlay /> : null}
       {assembling ? (
         <div className="ax-flash pointer-events-none absolute inset-0 z-50 bg-white" />
       ) : null}
@@ -518,6 +638,218 @@ export function StageScreen({ demo = false }: { demo?: boolean }) {
           </p>
         </div>
       ) : null}
+    </div>
+  );
+}
+
+/* ── Act 1: 우주 하이퍼스페이스 (캔버스 별 워프 + 성운 + 행성) ── */
+
+function StarfieldCanvas() {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    const dpr = window.devicePixelRatio || 1;
+    const resize = () => {
+      canvas.width = canvas.clientWidth * dpr;
+      canvas.height = canvas.clientHeight * dpr;
+    };
+    resize();
+    window.addEventListener("resize", resize);
+
+    const stars = Array.from({ length: 460 }, () => ({
+      x: Math.random() - 0.5,
+      y: Math.random() - 0.5,
+      z: 0.05 + Math.random() * 0.95,
+      hue: Math.random(),
+    }));
+    const start = performance.now();
+    let raf = 0;
+
+    const tick = (now: number) => {
+      const elapsed = (now - start) / 1000;
+      // 시간이 갈수록 가속 — 하이퍼스페이스 진입
+      const speed = 0.2 + elapsed * elapsed * 0.4;
+      const w = canvas.width;
+      const h = canvas.height;
+      const cx = w / 2;
+      const cy = h / 2;
+      const focal = Math.min(w, h);
+      ctx.fillStyle = "rgba(2, 4, 14, 0.32)";
+      ctx.fillRect(0, 0, w, h);
+      for (const s of stars) {
+        const prevZ = s.z;
+        s.z -= speed * 0.016;
+        if (s.z <= 0.02) {
+          s.x = Math.random() - 0.5;
+          s.y = Math.random() - 0.5;
+          s.z = 1;
+          continue;
+        }
+        const px = cx + (s.x / prevZ) * focal;
+        const py = cy + (s.y / prevZ) * focal;
+        const nx = cx + (s.x / s.z) * focal;
+        const ny = cy + (s.y / s.z) * focal;
+        if (nx < 0 || nx > w || ny < 0 || ny > h) {
+          s.x = Math.random() - 0.5;
+          s.y = Math.random() - 0.5;
+          s.z = 1;
+          continue;
+        }
+        const alpha = Math.min(1, (1 - s.z) * 1.5);
+        ctx.strokeStyle =
+          s.hue > 0.86
+            ? `rgba(196, 181, 253, ${alpha})`
+            : s.hue > 0.72
+              ? `rgba(103, 232, 249, ${alpha})`
+              : `rgba(226, 240, 255, ${alpha})`;
+        ctx.lineWidth = Math.max(1, (1 - s.z) * 3.2 * dpr);
+        ctx.beginPath();
+        ctx.moveTo(px, py);
+        ctx.lineTo(nx, ny);
+        ctx.stroke();
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", resize);
+    };
+  }, []);
+  return <canvas ref={canvasRef} className="h-full w-full" />;
+}
+
+function SpaceScene() {
+  return (
+    <div className="pointer-events-none absolute inset-0 z-[60] overflow-hidden bg-[#02040e]">
+      <StarfieldCanvas />
+      {/* 성운 */}
+      <div className="ax-nebula absolute -left-[20%] top-[10%] h-[60vmax] w-[60vmax] rounded-full" />
+      <div
+        className="ax-nebula absolute -right-[25%] bottom-[5%] h-[55vmax] w-[55vmax] rounded-full"
+        style={{
+          animationDelay: "0.6s",
+          background:
+            "radial-gradient(circle, rgba(124,58,237,0.28) 0%, rgba(124,58,237,0.08) 45%, transparent 70%)",
+        }}
+      />
+      {/* 스쳐 지나가는 행성 */}
+      <div className="ax-planet absolute left-1/2 top-1/2 h-[46vmax] w-[46vmax] rounded-full" />
+      {/* 타이틀 */}
+      <div className="absolute inset-0 flex items-center justify-center">
+        <div className="text-center">
+          <p className="ax-space-title text-[clamp(28px,5vw,64px)] font-bold tracking-[0.35em] text-white">
+            AX PROTOCOL
+          </p>
+          <p className="ax-space-sub mt-3 text-[clamp(13px,1.6vw,20px)] font-semibold tracking-[0.5em] text-accent">
+            INITIATING TRANSFORMATION
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Act 2: 메카 조립 (부품 비행 결합 + 눈 점등 + 차지업) ── */
+
+function RobotScene() {
+  return (
+    <div className="pointer-events-none absolute inset-0 z-[60] overflow-hidden bg-[#02040e]">
+      {/* 퍼스펙티브 그리드 바닥 */}
+      <div className="ax-grid-floor absolute inset-x-[-50%] bottom-[-12%] h-[55%]" />
+      {/* 후광 */}
+      <div className="ax-bot-halo absolute left-1/2 top-1/2 h-[70vmin] w-[70vmin] -translate-x-1/2 -translate-y-1/2 rounded-full" />
+      {/* 로봇 */}
+      <div className="ax-bot-charge absolute inset-0 flex items-center justify-center">
+        <svg
+          viewBox="0 0 240 300"
+          className="h-[72vmin] w-auto drop-shadow-[0_0_24px_rgba(0,212,255,0.55)]"
+          aria-hidden
+        >
+          <g
+            fill="rgba(10, 22, 44, 0.94)"
+            stroke="#00d4ff"
+            strokeWidth="2.5"
+            strokeLinejoin="round"
+          >
+            {/* 몸통 */}
+            <g className="ax-bot-torso">
+              <polygon points="78,78 162,78 152,152 120,168 88,152" />
+              <polygon
+                points="100,86 140,86 134,116 106,116"
+                fill="rgba(124,58,237,0.25)"
+                stroke="#a78bfa"
+                strokeWidth="1.5"
+              />
+              <circle
+                className="ax-bot-core"
+                cx="120"
+                cy="132"
+                r="13"
+                fill="#00d4ff"
+                stroke="#e0faff"
+              />
+            </g>
+            {/* 머리 */}
+            <g className="ax-bot-head">
+              <polygon points="94,28 146,28 156,54 120,70 84,54" />
+              <line x1="120" y1="28" x2="120" y2="12" stroke="#a78bfa" />
+              <circle cx="120" cy="10" r="3" fill="#a78bfa" stroke="none" />
+              <rect
+                className="ax-bot-eye"
+                x="96"
+                y="42"
+                width="16"
+                height="7"
+                rx="2"
+                fill="#00d4ff"
+                stroke="none"
+              />
+              <rect
+                className="ax-bot-eye"
+                x="128"
+                y="42"
+                width="16"
+                height="7"
+                rx="2"
+                fill="#00d4ff"
+                stroke="none"
+              />
+            </g>
+            {/* 왼팔 */}
+            <g className="ax-bot-arm-l">
+              <polygon points="42,74 78,74 76,104 44,104" />
+              <polygon points="46,104 72,104 66,178 44,172" />
+              <circle cx="56" cy="188" r="13" />
+            </g>
+            {/* 오른팔 */}
+            <g className="ax-bot-arm-r">
+              <polygon points="162,74 198,74 196,104 164,104" />
+              <polygon points="168,104 194,104 196,172 174,178" />
+              <circle cx="184" cy="188" r="13" />
+            </g>
+            {/* 왼다리 */}
+            <g className="ax-bot-leg-l">
+              <polygon points="92,168 116,172 112,252 90,248" />
+              <polygon points="82,248 114,252 112,272 80,268" />
+            </g>
+            {/* 오른다리 */}
+            <g className="ax-bot-leg-r">
+              <polygon points="124,172 148,168 150,248 128,252" />
+              <polygon points="126,252 158,248 160,268 128,272" />
+            </g>
+          </g>
+        </svg>
+      </div>
+      {/* 상태 텍스트 */}
+      <div className="absolute inset-x-0 bottom-[8%] flex justify-center">
+        <p className="ax-bot-caption text-[clamp(16px,2.2vw,28px)] font-bold tracking-[0.4em] text-accent">
+          HR-AX SYSTEM ONLINE
+        </p>
+      </div>
     </div>
   );
 }
