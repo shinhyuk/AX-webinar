@@ -42,9 +42,10 @@ export async function POST(req: Request) {
   }
   const name = file.name || "presentation.pptx";
   const lower = name.toLowerCase();
-  if (!lower.endsWith(".pptx") && !lower.endsWith(".ppt")) {
+  const isPdf = lower.endsWith(".pdf");
+  if (!isPdf && !lower.endsWith(".pptx") && !lower.endsWith(".ppt")) {
     return NextResponse.json(
-      { error: ".ppt 또는 .pptx 파일만 업로드 가능합니다." },
+      { error: ".ppt, .pptx 또는 .pdf 파일만 업로드 가능합니다." },
       { status: 400 },
     );
   }
@@ -67,7 +68,9 @@ export async function POST(req: Request) {
     .upload(objectPath, arrayBuffer, {
       contentType:
         file.type ||
-        "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        (isPdf
+          ? "application/pdf"
+          : "application/vnd.openxmlformats-officedocument.presentationml.presentation"),
       upsert: true,
     });
 
@@ -82,7 +85,8 @@ export async function POST(req: Request) {
     .from(BUCKET)
     .getPublicUrl(objectPath);
   const publicUrl = publicData.publicUrl;
-  const embedUrl = officeViewerUrl(publicUrl);
+  // PDF는 자체 뷰어(리모컨 페이지 넘김 지원)로 렌더링하므로 원본 URL을 그대로 저장
+  const embedUrl = isPdf ? publicUrl : officeViewerUrl(publicUrl);
 
   await supabase
     .from("config")
