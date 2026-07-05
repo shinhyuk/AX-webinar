@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import dynamic from "next/dynamic";
 import useSWR from "swr";
 import { QRCodeSVG } from "qrcode.react";
 import {
@@ -143,51 +142,13 @@ function playKeySound() {
   }
 }
 
-/** 변신 시퀀스 사운드트랙 (~10초):
- *  글리치 라이저 → 하이퍼스페이스 드론+스파클 → 로봇 서보/클랭크
- *  → 파워업 코드 → 차지 라이저 → 대폭발 → 패널 클랭크 → 베이스 드롭 */
-function playTransformSound() {
+/** 글리치 라이저 (변신 도입부 1초, 이후는 영상 자체 사운드 사용) */
+function playGlitchSound() {
   try {
     const ctx = getAudioCtx();
     if (!ctx) return;
     const t = ctx.currentTime;
-    const out = ctx.createGain();
-    out.gain.value = 1;
-    out.connect(ctx.destination);
 
-    const clank = (at: number, freq: number, vol = 0.16) => {
-      const hit = ctx.createOscillator();
-      hit.type = "square";
-      hit.frequency.setValueAtTime(freq, at);
-      hit.frequency.exponentialRampToValueAtTime(freq * 0.55, at + 0.09);
-      const hitGain = ctx.createGain();
-      hitGain.gain.setValueAtTime(vol, at);
-      hitGain.gain.exponentialRampToValueAtTime(0.001, at + 0.13);
-      const hitBand = ctx.createBiquadFilter();
-      hitBand.type = "bandpass";
-      hitBand.frequency.value = freq * 2.4;
-      hitBand.Q.value = 6;
-      hit.connect(hitBand);
-      hitBand.connect(hitGain);
-      hitGain.connect(out);
-      hit.start(at);
-      hit.stop(at + 0.15);
-      const click = ctx.createBufferSource();
-      click.buffer = makeNoiseBuffer(ctx, 0.05);
-      const clickHp = ctx.createBiquadFilter();
-      clickHp.type = "highpass";
-      clickHp.frequency.value = 3000;
-      const clickGain = ctx.createGain();
-      clickGain.gain.setValueAtTime(vol * 0.8, at);
-      clickGain.gain.exponentialRampToValueAtTime(0.001, at + 0.05);
-      click.connect(clickHp);
-      clickHp.connect(clickGain);
-      clickGain.connect(out);
-      click.start(at);
-      click.stop(at + 0.06);
-    };
-
-    // ── 0~1.0s: 글리치 라이저
     const riser = ctx.createOscillator();
     riser.type = "sawtooth";
     riser.frequency.setValueAtTime(65, t);
@@ -202,176 +163,98 @@ function playTransformSound() {
     riserGain.gain.exponentialRampToValueAtTime(0.001, t + 1.05);
     riser.connect(riserFilter);
     riserFilter.connect(riserGain);
-    riserGain.connect(out);
+    riserGain.connect(ctx.destination);
     riser.start(t);
     riser.stop(t + 1.1);
 
-    // ── 1.0~4.0s: 하이퍼스페이스 — 우주 드론 + 워프 노이즈 + 스파클
-    const drone = ctx.createOscillator();
-    drone.type = "sine";
-    drone.frequency.setValueAtTime(48, t + 1.0);
-    drone.frequency.linearRampToValueAtTime(60, t + 4.0);
-    const droneGain = ctx.createGain();
-    droneGain.gain.setValueAtTime(0.001, t + 1.0);
-    droneGain.gain.exponentialRampToValueAtTime(0.16, t + 1.4);
-    droneGain.gain.exponentialRampToValueAtTime(0.001, t + 4.1);
-    drone.connect(droneGain);
-    droneGain.connect(out);
-    drone.start(t + 1.0);
-    drone.stop(t + 4.15);
-
-    const warpNoise = ctx.createBufferSource();
-    warpNoise.buffer = makeNoiseBuffer(ctx, 3.2);
-    const warpLp = ctx.createBiquadFilter();
-    warpLp.type = "lowpass";
-    warpLp.frequency.setValueAtTime(900, t + 1.0);
-    warpLp.frequency.exponentialRampToValueAtTime(5200, t + 3.9);
-    const warpGain = ctx.createGain();
-    warpGain.gain.setValueAtTime(0.001, t + 1.0);
-    warpGain.gain.exponentialRampToValueAtTime(0.09, t + 1.5);
-    warpGain.gain.exponentialRampToValueAtTime(0.13, t + 3.8);
-    warpGain.gain.exponentialRampToValueAtTime(0.001, t + 4.1);
-    warpNoise.connect(warpLp);
-    warpLp.connect(warpGain);
-    warpGain.connect(out);
-    warpNoise.start(t + 1.0);
-    warpNoise.stop(t + 4.2);
-
-    // 별 스파클 핑
-    [1.6, 2.1, 2.5, 3.0, 3.4].forEach((d, i) => {
-      const ping = ctx.createOscillator();
-      ping.type = "sine";
-      const f = 1200 + i * 260;
-      ping.frequency.setValueAtTime(f, t + d);
-      ping.frequency.exponentialRampToValueAtTime(f * 1.6, t + d + 0.12);
-      const pingGain = ctx.createGain();
-      pingGain.gain.setValueAtTime(0.05, t + d);
-      pingGain.gain.exponentialRampToValueAtTime(0.001, t + d + 0.25);
-      ping.connect(pingGain);
-      pingGain.connect(out);
-      ping.start(t + d);
-      ping.stop(t + d + 0.3);
-    });
-
-    // ── 4.0~6.0s: 로봇 부품 서보 + 결합 클랭크
-    [4.15, 4.5, 4.8, 5.0, 5.2, 5.4].forEach((d, i) => {
-      const servo = ctx.createOscillator();
-      servo.type = "square";
-      const f0 = 340 - i * 18;
-      servo.frequency.setValueAtTime(f0, t + d);
-      servo.frequency.exponentialRampToValueAtTime(f0 * 0.4, t + d + 0.2);
-      const servoGain = ctx.createGain();
-      servoGain.gain.setValueAtTime(0.06, t + d);
-      servoGain.gain.exponentialRampToValueAtTime(0.001, t + d + 0.22);
-      const servoLp = ctx.createBiquadFilter();
-      servoLp.type = "lowpass";
-      servoLp.frequency.value = 1500;
-      servo.connect(servoLp);
-      servoLp.connect(servoGain);
-      servoGain.connect(out);
-      servo.start(t + d);
-      servo.stop(t + d + 0.25);
-      clank(t + d + 0.2, 600 + (i % 3) * 140, 0.13);
-    });
-
-    // ── 5.9s: 눈 점등 핑 + 파워업 코드
-    const eye = ctx.createOscillator();
-    eye.type = "sine";
-    eye.frequency.setValueAtTime(1500, t + 5.9);
-    eye.frequency.exponentialRampToValueAtTime(2400, t + 6.05);
-    const eyeGain = ctx.createGain();
-    eyeGain.gain.setValueAtTime(0.09, t + 5.9);
-    eyeGain.gain.exponentialRampToValueAtTime(0.001, t + 6.2);
-    eye.connect(eyeGain);
-    eyeGain.connect(out);
-    eye.start(t + 5.9);
-    eye.stop(t + 6.25);
-
-    [220, 277.18, 329.63].forEach((f) => {
-      const osc = ctx.createOscillator();
-      osc.type = "sawtooth";
-      osc.frequency.setValueAtTime(f, t + 6.0);
-      osc.frequency.exponentialRampToValueAtTime(f * 2, t + 7.3);
-      const g = ctx.createGain();
-      g.gain.setValueAtTime(0.001, t + 6.0);
-      g.gain.exponentialRampToValueAtTime(0.055, t + 6.3);
-      g.gain.exponentialRampToValueAtTime(0.001, t + 7.45);
-      const lp = ctx.createBiquadFilter();
-      lp.type = "lowpass";
-      lp.frequency.setValueAtTime(800, t + 6.0);
-      lp.frequency.exponentialRampToValueAtTime(5000, t + 7.3);
-      osc.connect(lp);
-      lp.connect(g);
-      g.connect(out);
-      osc.start(t + 6.0);
-      osc.stop(t + 7.5);
-    });
-
-    // ── 6.6~7.4s: 차지 라이저
-    const charge = ctx.createOscillator();
-    charge.type = "sawtooth";
-    charge.frequency.setValueAtTime(120, t + 6.6);
-    charge.frequency.exponentialRampToValueAtTime(1100, t + 7.4);
-    const chargeGain = ctx.createGain();
-    chargeGain.gain.setValueAtTime(0.001, t + 6.6);
-    chargeGain.gain.exponentialRampToValueAtTime(0.14, t + 7.35);
-    chargeGain.gain.exponentialRampToValueAtTime(0.001, t + 7.5);
-    charge.connect(chargeGain);
-    chargeGain.connect(out);
-    charge.start(t + 6.6);
-    charge.stop(t + 7.55);
-
-    // ── 7.45s: 대폭발
-    const boom = ctx.createOscillator();
-    boom.type = "sine";
-    boom.frequency.setValueAtTime(170, t + 7.45);
-    boom.frequency.exponentialRampToValueAtTime(30, t + 8.3);
-    const boomGain = ctx.createGain();
-    boomGain.gain.setValueAtTime(0.001, t + 7.43);
-    boomGain.gain.exponentialRampToValueAtTime(0.45, t + 7.5);
-    boomGain.gain.exponentialRampToValueAtTime(0.001, t + 8.5);
-    boom.connect(boomGain);
-    boomGain.connect(out);
-    boom.start(t + 7.43);
-    boom.stop(t + 8.55);
-
-    const crash = ctx.createBufferSource();
-    crash.buffer = makeNoiseBuffer(ctx, 0.9);
-    const crashLp = ctx.createBiquadFilter();
-    crashLp.type = "lowpass";
-    crashLp.frequency.setValueAtTime(6500, t + 7.45);
-    crashLp.frequency.exponentialRampToValueAtTime(250, t + 8.3);
-    const crashGain = ctx.createGain();
-    crashGain.gain.setValueAtTime(0.3, t + 7.45);
-    crashGain.gain.exponentialRampToValueAtTime(0.001, t + 8.35);
-    crash.connect(crashLp);
-    crashLp.connect(crashGain);
-    crashGain.connect(out);
-    crash.start(t + 7.45);
-    crash.stop(t + 8.4);
-
-    // ── 8.55~9.0s: 패널 결합 클랭크 3연타
-    clank(t + 8.55, 720);
-    clank(t + 8.75, 540);
-    clank(t + 8.95, 880);
-
-    // ── 9.1s: 마무리 베이스 드롭
-    const drop = ctx.createOscillator();
-    drop.type = "sine";
-    drop.frequency.setValueAtTime(95, t + 9.1);
-    drop.frequency.exponentialRampToValueAtTime(42, t + 9.7);
-    const dropGain = ctx.createGain();
-    dropGain.gain.setValueAtTime(0.001, t + 9.08);
-    dropGain.gain.exponentialRampToValueAtTime(0.32, t + 9.15);
-    dropGain.gain.exponentialRampToValueAtTime(0.001, t + 9.85);
-    drop.connect(dropGain);
-    dropGain.connect(out);
-    drop.start(t + 9.08);
-    drop.stop(t + 9.9);
+    const sweep = ctx.createBufferSource();
+    sweep.buffer = makeNoiseBuffer(ctx, 1.05);
+    const sweepBand = ctx.createBiquadFilter();
+    sweepBand.type = "bandpass";
+    sweepBand.Q.value = 1.4;
+    sweepBand.frequency.setValueAtTime(250, t);
+    sweepBand.frequency.exponentialRampToValueAtTime(7000, t + 0.95);
+    const sweepGain = ctx.createGain();
+    sweepGain.gain.setValueAtTime(0.001, t);
+    sweepGain.gain.exponentialRampToValueAtTime(0.09, t + 0.85);
+    sweepGain.gain.exponentialRampToValueAtTime(0.001, t + 1.05);
+    sweep.connect(sweepBand);
+    sweepBand.connect(sweepGain);
+    sweepGain.connect(ctx.destination);
+    sweep.start(t);
+    sweep.stop(t + 1.1);
   } catch {
     // 오디오 미지원/차단 환경에서는 조용히 무시
   }
 }
+
+/** 패널 조립 사운드: 금속 클랭크 3연타 + 베이스 드롭 */
+function playAssembleSound() {
+  try {
+    const ctx = getAudioCtx();
+    if (!ctx) return;
+    const t = ctx.currentTime;
+    const out = ctx.createGain();
+    out.gain.value = 1;
+    out.connect(ctx.destination);
+
+    [
+      [0.05, 720],
+      [0.25, 540],
+      [0.45, 880],
+    ].forEach(([d, freq]) => {
+      const at = t + d;
+      const hit = ctx.createOscillator();
+      hit.type = "square";
+      hit.frequency.setValueAtTime(freq, at);
+      hit.frequency.exponentialRampToValueAtTime(freq * 0.55, at + 0.09);
+      const hitGain = ctx.createGain();
+      hitGain.gain.setValueAtTime(0.16, at);
+      hitGain.gain.exponentialRampToValueAtTime(0.001, at + 0.13);
+      const hitBand = ctx.createBiquadFilter();
+      hitBand.type = "bandpass";
+      hitBand.frequency.value = freq * 2.4;
+      hitBand.Q.value = 6;
+      hit.connect(hitBand);
+      hitBand.connect(hitGain);
+      hitGain.connect(out);
+      hit.start(at);
+      hit.stop(at + 0.15);
+
+      const click = ctx.createBufferSource();
+      click.buffer = makeNoiseBuffer(ctx, 0.05);
+      const clickHp = ctx.createBiquadFilter();
+      clickHp.type = "highpass";
+      clickHp.frequency.value = 3000;
+      const clickGain = ctx.createGain();
+      clickGain.gain.setValueAtTime(0.13, at);
+      clickGain.gain.exponentialRampToValueAtTime(0.001, at + 0.05);
+      click.connect(clickHp);
+      clickHp.connect(clickGain);
+      clickGain.connect(out);
+      click.start(at);
+      click.stop(at + 0.06);
+    });
+
+    const drop = ctx.createOscillator();
+    drop.type = "sine";
+    drop.frequency.setValueAtTime(95, t + 0.6);
+    drop.frequency.exponentialRampToValueAtTime(42, t + 1.2);
+    const dropGain = ctx.createGain();
+    dropGain.gain.setValueAtTime(0.001, t + 0.58);
+    dropGain.gain.exponentialRampToValueAtTime(0.32, t + 0.65);
+    dropGain.gain.exponentialRampToValueAtTime(0.001, t + 1.35);
+    drop.connect(dropGain);
+    dropGain.connect(out);
+    drop.start(t + 0.58);
+    drop.stop(t + 1.4);
+  } catch {
+    // 오디오 미지원/차단 환경에서는 조용히 무시
+  }
+}
+
+/** 변신 영상 (AI 생성, /public/transform.mp4 — 자체 사운드 포함) */
+const TRANSFORM_VIDEO_SRC = "/transform.mp4";
 
 /* ── 메인 컴포넌트 ─────────────────────────────────────── */
 
@@ -388,13 +271,15 @@ export function StageScreen({ demo = false }: { demo?: boolean }) {
 
   // 시나리오 상태
   const [stepIndex, setStepIndex] = useState(0);
-  // 변신 시퀀스(~10초): glitch(붕괴) → space(하이퍼스페이스) → robot(메카 조립)
-  // → burst(대폭발) → assemble(패널 조립) → none
+  // 변신 시퀀스: glitch(붕괴 1초) → video(AI 영상 ~9초) → assemble(패널 조립) → none
   const [transformPhase, setTransformPhase] = useState<
-    "none" | "glitch" | "space" | "robot" | "burst" | "assemble"
+    "none" | "glitch" | "video" | "assemble"
   >("none");
   const [exited, setExited] = useState(!demo);
   const transformTimersRef = useRef<number[]>([]);
+  const transformPhaseRef = useRef(transformPhase);
+  transformPhaseRef.current = transformPhase;
+  const videoRef = useRef<HTMLVideoElement | null>(null);
 
   const clearTransformTimers = useCallback(() => {
     for (const id of transformTimersRef.current) window.clearTimeout(id);
@@ -415,15 +300,10 @@ export function StageScreen({ demo = false }: { demo?: boolean }) {
       const step = THEATER_SCRIPT[i];
       if (step.kind === "transform") {
         clearTransformTimers();
-        playTransformSound();
-        void import("./RobotScene3D"); // 3D 씬 번들 미리 로드
+        playGlitchSound();
         setTransformPhase("glitch");
         transformTimersRef.current = [
-          window.setTimeout(() => setTransformPhase("space"), 1000),
-          window.setTimeout(() => setTransformPhase("robot"), 4000),
-          window.setTimeout(() => setTransformPhase("burst"), 7400),
-          window.setTimeout(() => setTransformPhase("assemble"), 8450),
-          window.setTimeout(() => setTransformPhase("none"), 9600),
+          window.setTimeout(() => setTransformPhase("video"), 1000),
         ];
       }
       return i + 1;
@@ -433,10 +313,54 @@ export function StageScreen({ demo = false }: { demo?: boolean }) {
   const back = useCallback(() => {
     setStepIndex((i) => Math.max(0, i - 1));
     clearTransformTimers();
+    videoRef.current?.pause();
     setTransformPhase("none");
   }, [clearTransformTimers]);
 
   useEffect(() => clearTransformTimers, [clearTransformTimers]);
+
+  // 영상 종료(또는 실패) → 패널 조립으로 전환
+  const goAssemble = useCallback(() => {
+    if (transformPhaseRef.current !== "video") return;
+    playAssembleSound();
+    setTransformPhase("assemble");
+    transformTimersRef.current.push(
+      window.setTimeout(() => setTransformPhase("none"), 1150),
+    );
+  }, []);
+
+  // video 단계 진입 시 재생 시작 (직전 키 입력이 사용자 제스처라 소리 재생 가능)
+  useEffect(() => {
+    if (transformPhase !== "video") return;
+    const v = videoRef.current;
+    if (!v) {
+      goAssemble();
+      return;
+    }
+    v.currentTime = 0;
+    v.muted = false;
+    v.play().catch(() => {
+      // 소리 자동재생이 막히면 음소거로라도 재생
+      v.muted = true;
+      v.play().catch(() => goAssemble());
+    });
+    // onEnded 미발화 대비 안전 타이머
+    const ms =
+      Number.isFinite(v.duration) && v.duration > 0
+        ? v.duration * 1000 + 1500
+        : 12000;
+    const id = window.setTimeout(goAssemble, ms);
+    return () => window.clearTimeout(id);
+  }, [transformPhase, goAssemble]);
+
+  // 인트로 동안 영상 미리 버퍼링
+  useEffect(() => {
+    if (!demo) return;
+    const v = document.createElement("video");
+    v.preload = "auto";
+    v.src = TRANSFORM_VIDEO_SRC;
+    v.load();
+  }, [demo]);
 
   // 시나리오 종료 여부 (마지막 스텝 = QR 구석 이동까지 완료)
   const scriptDone = exited || stepIndex >= THEATER_SCRIPT.length;
@@ -458,6 +382,7 @@ export function StageScreen({ demo = false }: { demo?: boolean }) {
       } else if (e.key === "0") {
         setExited(true);
         clearTransformTimers();
+        videoRef.current?.pause();
         setTransformPhase("none");
       } else {
         // 아무 키나 누르면 다음 장면으로
@@ -531,9 +456,21 @@ export function StageScreen({ demo = false }: { demo?: boolean }) {
         (assembling ? " ax-settle-shake" : "")
       }
     >
-      {transformPhase === "space" ? <SpaceScene /> : null}
-      {transformPhase === "robot" ? <RobotScene /> : null}
-      {transformPhase === "burst" ? <WarpOverlay /> : null}
+      {/* AI 생성 변신 영상 (미리 마운트해 버퍼링, video 단계에서만 표시) */}
+      {demo && !exited ? (
+        <video
+          ref={videoRef}
+          src={TRANSFORM_VIDEO_SRC}
+          preload="auto"
+          playsInline
+          onEnded={goAssemble}
+          onError={goAssemble}
+          className={
+            "absolute inset-0 z-[60] h-full w-full bg-black object-cover" +
+            (transformPhase === "video" ? "" : " hidden")
+          }
+        />
+      ) : null}
       {assembling ? (
         <div className="ax-flash pointer-events-none absolute inset-0 z-50 bg-white" />
       ) : null}
@@ -640,185 +577,6 @@ export function StageScreen({ demo = false }: { demo?: boolean }) {
           </p>
         </div>
       ) : null}
-    </div>
-  );
-}
-
-/* ── Act 1: 우주 하이퍼스페이스 (캔버스 별 워프 + 성운 + 행성) ── */
-
-function StarfieldCanvas() {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    const dpr = window.devicePixelRatio || 1;
-    const resize = () => {
-      canvas.width = canvas.clientWidth * dpr;
-      canvas.height = canvas.clientHeight * dpr;
-    };
-    resize();
-    window.addEventListener("resize", resize);
-
-    const stars = Array.from({ length: 460 }, () => ({
-      x: Math.random() - 0.5,
-      y: Math.random() - 0.5,
-      z: 0.05 + Math.random() * 0.95,
-      hue: Math.random(),
-    }));
-    const start = performance.now();
-    let raf = 0;
-
-    const tick = (now: number) => {
-      const elapsed = (now - start) / 1000;
-      // 시간이 갈수록 가속 — 하이퍼스페이스 진입
-      const speed = 0.2 + elapsed * elapsed * 0.4;
-      const w = canvas.width;
-      const h = canvas.height;
-      const cx = w / 2;
-      const cy = h / 2;
-      const focal = Math.min(w, h);
-      ctx.fillStyle = "rgba(2, 4, 14, 0.32)";
-      ctx.fillRect(0, 0, w, h);
-      for (const s of stars) {
-        const prevZ = s.z;
-        s.z -= speed * 0.016;
-        if (s.z <= 0.02) {
-          s.x = Math.random() - 0.5;
-          s.y = Math.random() - 0.5;
-          s.z = 1;
-          continue;
-        }
-        const px = cx + (s.x / prevZ) * focal;
-        const py = cy + (s.y / prevZ) * focal;
-        const nx = cx + (s.x / s.z) * focal;
-        const ny = cy + (s.y / s.z) * focal;
-        if (nx < 0 || nx > w || ny < 0 || ny > h) {
-          s.x = Math.random() - 0.5;
-          s.y = Math.random() - 0.5;
-          s.z = 1;
-          continue;
-        }
-        const alpha = Math.min(1, (1 - s.z) * 1.5);
-        ctx.strokeStyle =
-          s.hue > 0.86
-            ? `rgba(196, 181, 253, ${alpha})`
-            : s.hue > 0.72
-              ? `rgba(103, 232, 249, ${alpha})`
-              : `rgba(226, 240, 255, ${alpha})`;
-        ctx.lineWidth = Math.max(1, (1 - s.z) * 3.2 * dpr);
-        ctx.beginPath();
-        ctx.moveTo(px, py);
-        ctx.lineTo(nx, ny);
-        ctx.stroke();
-      }
-      raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => {
-      cancelAnimationFrame(raf);
-      window.removeEventListener("resize", resize);
-    };
-  }, []);
-  return <canvas ref={canvasRef} className="h-full w-full" />;
-}
-
-function SpaceScene() {
-  return (
-    <div className="pointer-events-none absolute inset-0 z-[60] overflow-hidden bg-[#02040e]">
-      <StarfieldCanvas />
-      {/* 성운 */}
-      <div className="ax-nebula absolute -left-[20%] top-[10%] h-[60vmax] w-[60vmax] rounded-full" />
-      <div
-        className="ax-nebula absolute -right-[25%] bottom-[5%] h-[55vmax] w-[55vmax] rounded-full"
-        style={{
-          animationDelay: "0.6s",
-          background:
-            "radial-gradient(circle, rgba(124,58,237,0.28) 0%, rgba(124,58,237,0.08) 45%, transparent 70%)",
-        }}
-      />
-      {/* 스쳐 지나가는 행성 */}
-      <div className="ax-planet absolute left-1/2 top-1/2 h-[46vmax] w-[46vmax] rounded-full" />
-      {/* 타이틀 */}
-      <div className="absolute inset-0 flex items-center justify-center">
-        <div className="text-center">
-          <p className="ax-space-title text-[clamp(28px,5vw,64px)] font-bold tracking-[0.35em] text-white">
-            AX PROTOCOL
-          </p>
-          <p className="ax-space-sub mt-3 text-[clamp(13px,1.6vw,20px)] font-semibold tracking-[0.5em] text-accent">
-            INITIATING TRANSFORMATION
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ── Act 2: 메카 조립 — Three.js 실시간 3D (RobotScene3D.tsx) ── */
-
-const RobotCanvas = dynamic(() => import("./RobotScene3D"), { ssr: false });
-
-function RobotScene() {
-  return (
-    <div className="pointer-events-none absolute inset-0 z-[60] overflow-hidden bg-[#02040e]">
-      <RobotCanvas />
-      {/* 상태 텍스트 */}
-      <div className="absolute inset-x-0 bottom-[8%] flex justify-center">
-        <p className="ax-bot-caption text-[clamp(16px,2.2vw,28px)] font-bold tracking-[0.4em] text-accent">
-          HR-AX SYSTEM ONLINE
-        </p>
-      </div>
-    </div>
-  );
-}
-
-/* ── 워프 연출: 에너지 코어 + 파티클 버스트 + 충격파 링 ── */
-
-function WarpOverlay() {
-  // 파티클 방향/거리/타이밍은 마운트 시 1회 생성
-  const particles = useRef(
-    Array.from({ length: 56 }, (_, i) => ({
-      angle: (i / 56) * 360 + Math.random() * 8,
-      dist: 42 + Math.random() * 55, // vmax
-      delay: Math.random() * 0.25,
-      size: 2 + Math.random() * 3,
-      hue: Math.random() > 0.5 ? "#00d4ff" : "#a78bfa",
-    })),
-  ).current;
-
-  return (
-    <div className="ax-warp-bg pointer-events-none absolute inset-0 z-[60] overflow-hidden bg-black">
-      {/* 회전하는 스피드라인 */}
-      <div className="ax-warp-spin absolute left-1/2 top-1/2 h-[220vmax] w-[220vmax] -translate-x-1/2 -translate-y-1/2" />
-      {/* 중심 에너지 코어 */}
-      <div className="ax-warp-core absolute left-1/2 top-1/2 h-40 w-40 -translate-x-1/2 -translate-y-1/2 rounded-full" />
-      {/* 충격파 링 */}
-      {[0, 0.18, 0.36, 0.54].map((d) => (
-        <div
-          key={d}
-          className="ax-warp-ring absolute left-1/2 top-1/2 h-32 w-32 -translate-x-1/2 -translate-y-1/2 rounded-full"
-          style={{ animationDelay: `${d}s` }}
-        />
-      ))}
-      {/* 파티클 버스트 */}
-      {particles.map((p, i) => (
-        <div
-          key={i}
-          className="ax-warp-particle absolute left-1/2 top-1/2 rounded-full"
-          style={
-            {
-              width: `${p.size}px`,
-              height: `${p.size}px`,
-              background: p.hue,
-              boxShadow: `0 0 ${p.size * 3}px ${p.hue}`,
-              animationDelay: `${p.delay}s`,
-              "--a": `${p.angle}deg`,
-              "--d": `${p.dist}vmax`,
-            } as React.CSSProperties
-          }
-        />
-      ))}
     </div>
   );
 }
