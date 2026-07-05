@@ -23,7 +23,6 @@ type TheaterStep =
   | { kind: "chat"; who: "host" | "shin"; text: string }
   | { kind: "loading" }
   | { kind: "transform" }
-  | { kind: "qr-big" }
   | { kind: "qr-corner" }
   | { kind: "bot"; who: "shin" | "hchat"; text: string }
   | { kind: "pause" }
@@ -42,8 +41,7 @@ const THEATER_SCRIPT: TheaterStep[] = [
     text: "H Chat! 세상에 없던 발표 형식과 자료 만들어줘!",
   },
   { kind: "loading" },
-  { kind: "transform" },
-  { kind: "qr-big" },
+  { kind: "transform" }, // 변신과 동시에 QR 크게 표시
   { kind: "qr-corner" },
   {
     kind: "bot",
@@ -91,8 +89,6 @@ function deriveTheater(count: number): TheaterState {
       case "transform":
         s.transformed = true;
         s.loading = false;
-        break;
-      case "qr-big":
         s.qr = "big";
         break;
       case "qr-corner":
@@ -128,21 +124,16 @@ export function StageScreen({ demo = false }: { demo?: boolean }) {
   const [stepIndex, setStepIndex] = useState(0);
   const [transforming, setTransforming] = useState(false);
   const [exited, setExited] = useState(!demo);
-  const [manualPptOnly, setManualPptOnly] = useState<boolean | null>(null);
-  const [manualQr, setManualQr] = useState<"big" | "hidden" | null>(null);
 
   const t = deriveTheater(exited ? THEATER_SCRIPT.length : stepIndex);
   const transformed = exited || t.transformed;
-  const pptOnly = exited ? false : (manualPptOnly ?? t.pptOnly);
+  const pptOnly = exited ? false : t.pptOnly;
   const qrState: "hidden" | "big" | "corner" = exited
     ? demo
       ? "corner"
       : "hidden"
-    : (manualQr ?? t.qr);
+    : t.qr;
   const bubbles = exited ? [] : t.bubbles;
-
-  const effRef = useRef({ pptOnly, qrState });
-  effRef.current = { pptOnly, qrState };
 
   const advance = useCallback(() => {
     setStepIndex((i) => {
@@ -154,33 +145,29 @@ export function StageScreen({ demo = false }: { demo?: boolean }) {
       }
       return i + 1;
     });
-    setManualPptOnly(null);
-    setManualQr(null);
   }, []);
 
   const back = useCallback(() => {
     setStepIndex((i) => Math.max(0, i - 1));
-    setManualPptOnly(null);
-    setManualQr(null);
     setTransforming(false);
   }, []);
 
   useEffect(() => {
     if (!demo) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "ArrowRight" || e.key === " ") {
-        e.preventDefault();
-        advance();
-      } else if (e.key === "ArrowLeft") {
+      // 수정키 단독 입력은 무시
+      if (["Shift", "Control", "Alt", "Meta", "CapsLock"].includes(e.key))
+        return;
+      if (e.key === "ArrowLeft") {
         e.preventDefault();
         back();
-      } else if (e.key === "p" || e.key === "P") {
-        setManualPptOnly(!effRef.current.pptOnly);
-      } else if (e.key === "q" || e.key === "Q") {
-        setManualQr(effRef.current.qrState === "big" ? "hidden" : "big");
       } else if (e.key === "0") {
         setExited(true);
         setTransforming(false);
+      } else {
+        // 아무 키나 누르면 다음 장면으로
+        e.preventDefault();
+        advance();
       }
     };
     window.addEventListener("keydown", onKey);
@@ -324,28 +311,6 @@ export function StageScreen({ demo = false }: { demo?: boolean }) {
           </p>
         </div>
       ) : null}
-
-      {/* 데모 진행 버튼 (발표자용) */}
-      {demo && !exited ? (
-        <div className="absolute bottom-6 right-6 z-50 flex items-center gap-2">
-          <button
-            type="button"
-            onClick={back}
-            aria-label="이전"
-            className="ax-btn-ghost flex h-11 w-11 items-center justify-center rounded-full text-lg"
-          >
-            ‹
-          </button>
-          <button
-            type="button"
-            onClick={advance}
-            disabled={stepIndex >= THEATER_SCRIPT.length}
-            className="ax-btn h-11 rounded-full px-6 text-[15px]"
-          >
-            다음 ›
-          </button>
-        </div>
-      ) : null}
     </div>
   );
 }
@@ -446,19 +411,6 @@ function IntroChat({
         </ul>
         <div ref={endRef} />
       </div>
-
-      <footer className="flex justify-end px-6 pb-5">
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onAdvance();
-          }}
-          className="ax-btn h-11 rounded-full px-6 text-[15px]"
-        >
-          다음 ›
-        </button>
-      </footer>
     </div>
   );
 }
