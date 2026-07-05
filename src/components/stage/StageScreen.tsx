@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import useSWR from "swr";
+import { QRCodeSVG } from "qrcode.react";
 import {
   useAnsweredMessages,
   type FeedMessage,
@@ -14,25 +15,105 @@ const fetcher = async (url: string) => {
   return res.json();
 };
 
-function colorFromKey(key: string): string {
-  const palette = [
-    "#38bdf8",
-    "#34d399",
-    "#fbbf24",
-    "#fb7185",
-    "#c084fc",
-    "#22d3ee",
-    "#f472b6",
-    "#2dd4bf",
-  ];
-  let hash = 0;
-  for (let i = 0; i < key.length; i++) {
-    hash = (hash * 31 + key.charCodeAt(i)) | 0;
+const QR_URL = "https://hrax.app";
+
+/* ── 데모 시나리오 스크립트 ─────────────────────────────── */
+
+type TheaterStep =
+  | { kind: "chat"; who: "host" | "shin"; text: string }
+  | { kind: "loading" }
+  | { kind: "transform" }
+  | { kind: "qr-big" }
+  | { kind: "qr-corner" }
+  | { kind: "bot"; who: "shin" | "hchat"; text: string }
+  | { kind: "pause" }
+  | { kind: "ppt-only" };
+
+const THEATER_SCRIPT: TheaterStep[] = [
+  { kind: "chat", who: "host", text: "신혁쌤, HRD 발표자료 준비해주세요." },
+  {
+    kind: "chat",
+    who: "shin",
+    text: "AI 시대에 맞게, 프롬프팅 방식으로 해보겠습니다.",
+  },
+  {
+    kind: "chat",
+    who: "shin",
+    text: "H Chat! 세상에 없던 발표 형식과 자료 만들어줘!",
+  },
+  { kind: "loading" },
+  { kind: "transform" },
+  { kind: "qr-big" },
+  { kind: "qr-corner" },
+  {
+    kind: "bot",
+    who: "hchat",
+    text: "주최측이 보내준 참석자 통계를 기반으로 참석자 페르소나를 정의했습니다. 오늘은 HRD·교육 담당자 중심의 청중이시네요. 눈높이에 맞춰 진행하겠습니다. 🙌",
+  },
+  { kind: "bot", who: "shin", text: "이거 정신 사나우니까 그냥 PPT만 보여줘." },
+  { kind: "pause" },
+  {
+    kind: "bot",
+    who: "hchat",
+    text: "…제가 주인이 아니라, 제 말은 안 듣는군요. 😅",
+  },
+  { kind: "ppt-only" },
+];
+
+type TheaterState = {
+  introLines: Array<{ who: "host" | "shin"; text: string }>;
+  loading: boolean;
+  transformed: boolean;
+  qr: "hidden" | "big" | "corner";
+  bubbles: Array<{ who: "shin" | "hchat"; text: string }>;
+  pptOnly: boolean;
+};
+
+function deriveTheater(count: number): TheaterState {
+  const s: TheaterState = {
+    introLines: [],
+    loading: false,
+    transformed: false,
+    qr: "hidden",
+    bubbles: [],
+    pptOnly: false,
+  };
+  for (let i = 0; i < Math.min(count, THEATER_SCRIPT.length); i++) {
+    const step = THEATER_SCRIPT[i];
+    switch (step.kind) {
+      case "chat":
+        s.introLines.push({ who: step.who, text: step.text });
+        s.loading = false;
+        break;
+      case "loading":
+        s.loading = true;
+        break;
+      case "transform":
+        s.transformed = true;
+        s.loading = false;
+        break;
+      case "qr-big":
+        s.qr = "big";
+        break;
+      case "qr-corner":
+        s.qr = "corner";
+        break;
+      case "bot":
+        s.bubbles.push({ who: step.who, text: step.text });
+        break;
+      case "pause":
+        break;
+      case "ppt-only":
+        s.pptOnly = true;
+        break;
+    }
   }
-  return palette[Math.abs(hash) % palette.length];
+  return s;
 }
 
-export function StageScreen() {
+/* ── 메인 컴포넌트 ─────────────────────────────────────── */
+
+export function StageScreen({ demo = false }: { demo?: boolean }) {
   const { data: cfg } = useSWR<{ ppt_embed_url: string | null }>(
     "/api/public/config",
     fetcher,
@@ -42,6 +123,69 @@ export function StageScreen() {
   const [typedIds, setTypedIds] = useState<Set<string>>(new Set());
   const endRef = useRef<HTMLDivElement | null>(null);
   const initialIdsRef = useRef<Set<string> | null>(null);
+
+  // 시나리오 상태
+  const [stepIndex, setStepIndex] = useState(0);
+  const [transforming, setTransforming] = useState(false);
+  const [exited, setExited] = useState(!demo);
+  const [manualPptOnly, setManualPptOnly] = useState<boolean | null>(null);
+  const [manualQr, setManualQr] = useState<"big" | "hidden" | null>(null);
+
+  const t = deriveTheater(exited ? THEATER_SCRIPT.length : stepIndex);
+  const transformed = exited || t.transformed;
+  const pptOnly = exited ? false : (manualPptOnly ?? t.pptOnly);
+  const qrState: "hidden" | "big" | "corner" = exited
+    ? demo
+      ? "corner"
+      : "hidden"
+    : (manualQr ?? t.qr);
+  const bubbles = exited ? [] : t.bubbles;
+
+  const effRef = useRef({ pptOnly, qrState });
+  effRef.current = { pptOnly, qrState };
+
+  const advance = useCallback(() => {
+    setStepIndex((i) => {
+      if (i >= THEATER_SCRIPT.length) return i;
+      const step = THEATER_SCRIPT[i];
+      if (step.kind === "transform") {
+        setTransforming(true);
+        window.setTimeout(() => setTransforming(false), 1300);
+      }
+      return i + 1;
+    });
+    setManualPptOnly(null);
+    setManualQr(null);
+  }, []);
+
+  const back = useCallback(() => {
+    setStepIndex((i) => Math.max(0, i - 1));
+    setManualPptOnly(null);
+    setManualQr(null);
+    setTransforming(false);
+  }, []);
+
+  useEffect(() => {
+    if (!demo) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "ArrowRight" || e.key === " ") {
+        e.preventDefault();
+        advance();
+      } else if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        back();
+      } else if (e.key === "p" || e.key === "P") {
+        setManualPptOnly(!effRef.current.pptOnly);
+      } else if (e.key === "q" || e.key === "Q") {
+        setManualQr(effRef.current.qrState === "big" ? "hidden" : "big");
+      } else if (e.key === "0") {
+        setExited(true);
+        setTransforming(false);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [demo, advance, back]);
 
   useEffect(() => {
     if (initialIdsRef.current !== null) return;
@@ -54,65 +198,315 @@ export function StageScreen() {
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [messages]);
+  }, [messages, bubbles.length]);
+
+  const showIntro = demo && !exited && (!transformed || transforming);
+  const justRevealed = demo && !exited && transformed && !transforming;
+
+  if (showIntro) {
+    return (
+      <IntroChat
+        lines={t.introLines}
+        loading={t.loading}
+        glitching={transforming}
+      />
+    );
+  }
 
   return (
-    <div className="grid h-[100dvh] grid-cols-[7fr_3fr] gap-3 bg-background p-3">
-      <PptPanel url={cfg?.ppt_embed_url ?? null} />
+    <div className="relative h-[100dvh] bg-background p-3">
+      {justRevealed ? (
+        <div className="ax-flash pointer-events-none absolute inset-0 z-50 bg-white" />
+      ) : null}
 
-      <section className="ax-card flex min-h-0 flex-col overflow-hidden">
-        <header className="flex items-start justify-between border-b border-line px-5 py-3">
-          <div>
-            <p className="text-[11px] font-semibold tracking-[0.22em] text-accent">
-              LIVE CHAT
-            </p>
-            <h2 className="mt-0.5 text-xl font-bold tracking-tight">
-              실시간 채팅
-            </h2>
-          </div>
-          <div className="mt-1 flex items-center gap-2">
-            <OnlineBadge />
-            <a
-              href="/report"
-              className="ax-btn-ghost rounded-xl px-3 py-1.5 text-[12px] font-semibold"
-            >
-              질문 보고서
-            </a>
-          </div>
-        </header>
-        <TopQuestions messages={messages} />
-        <div className="ax-scroll flex-1 min-h-0 overflow-y-auto px-4 py-4">
-          {loading ? (
-            <p className="text-base text-muted">불러오는 중...</p>
-          ) : messages.length === 0 ? (
-            <div className="flex h-full items-center justify-center">
-              <p className="text-center text-base text-muted">
-                청중 메시지가 여기 표시됩니다
-              </p>
-            </div>
-          ) : (
-            <ul className="flex flex-col gap-4">
-              {messages.map((m) => (
-                <StageItem
-                  key={m.id}
-                  message={m}
-                  alreadyTyped={!!m.answer && typedIds.has(m.id)}
-                  onTyped={() =>
-                    setTypedIds((prev) => {
-                      if (prev.has(m.id)) return prev;
-                      const next = new Set(prev);
-                      next.add(m.id);
-                      return next;
-                    })
-                  }
-                />
-              ))}
-            </ul>
-          )}
-          <div ref={endRef} />
+      <div
+        className={
+          "grid h-full gap-3 " +
+          (pptOnly ? "grid-cols-1" : "grid-cols-[7fr_3fr]")
+        }
+      >
+        <div className={justRevealed ? "ax-slide-in-left min-h-0" : "min-h-0"}>
+          <PptPanel url={cfg?.ppt_embed_url ?? null} />
         </div>
-      </section>
+
+        {!pptOnly ? (
+          <section
+            className={
+              "ax-card flex min-h-0 flex-col overflow-hidden " +
+              (justRevealed ? "ax-slide-in-right" : "")
+            }
+          >
+            <header className="flex items-start justify-between border-b border-line px-5 py-3">
+              <div>
+                <p className="text-[11px] font-semibold tracking-[0.22em] text-accent">
+                  LIVE CHAT
+                </p>
+                <h2 className="mt-0.5 text-xl font-bold tracking-tight">
+                  실시간 채팅
+                </h2>
+              </div>
+              <div className="mt-1 flex items-center gap-2">
+                <OnlineBadge />
+                <a
+                  href="/report"
+                  className="ax-btn-ghost rounded-xl px-3 py-1.5 text-[12px] font-semibold"
+                >
+                  질문 보고서
+                </a>
+              </div>
+            </header>
+            <TopQuestions messages={messages} />
+            <div className="ax-scroll flex-1 min-h-0 overflow-y-auto px-4 py-4">
+              {loading ? (
+                <p className="text-base text-muted">불러오는 중...</p>
+              ) : messages.length === 0 && bubbles.length === 0 ? (
+                <div className="flex h-full items-center justify-center">
+                  <p className="text-center text-base text-muted">
+                    청중 메시지가 여기 표시됩니다
+                  </p>
+                </div>
+              ) : (
+                <ul className="flex flex-col gap-4">
+                  {messages.map((m) => (
+                    <StageItem
+                      key={m.id}
+                      message={m}
+                      alreadyTyped={!!m.answer && typedIds.has(m.id)}
+                      onTyped={() =>
+                        setTypedIds((prev) => {
+                          if (prev.has(m.id)) return prev;
+                          const next = new Set(prev);
+                          next.add(m.id);
+                          return next;
+                        })
+                      }
+                    />
+                  ))}
+                  {bubbles.map((b, i) => (
+                    <TheaterBubble
+                      key={`theater-${i}`}
+                      who={b.who}
+                      text={b.text}
+                      animate={i === bubbles.length - 1}
+                    />
+                  ))}
+                </ul>
+              )}
+              <div ref={endRef} />
+            </div>
+          </section>
+        ) : null}
+      </div>
+
+      {/* QR 오버레이 */}
+      {qrState === "big" ? (
+        <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="ax-pop-in flex flex-col items-center rounded-3xl bg-white px-10 py-8 shadow-2xl">
+            <p className="text-[13px] font-bold tracking-[0.2em] text-slate-500">
+              지금 접속하세요
+            </p>
+            <div className="mt-4">
+              <QRCodeSVG value={QR_URL} size={280} />
+            </div>
+            <p className="mt-4 text-2xl font-bold text-slate-900">hrax.app</p>
+            <p className="mt-1 text-sm text-slate-500">
+              질문과 반응을 실시간으로 남길 수 있어요
+            </p>
+          </div>
+        </div>
+      ) : null}
+      {qrState === "corner" ? (
+        <div className="ax-pop-in absolute bottom-6 left-6 z-30 flex flex-col items-center rounded-2xl bg-white p-3 shadow-xl">
+          <QRCodeSVG value={QR_URL} size={96} />
+          <p className="mt-1.5 text-[11px] font-bold text-slate-700">
+            hrax.app
+          </p>
+        </div>
+      ) : null}
     </div>
+  );
+}
+
+/* ── Scene 0: H Chat 오프닝 화면 ───────────────────────── */
+
+function IntroChat({
+  lines,
+  loading,
+  glitching,
+}: {
+  lines: Array<{ who: "host" | "shin"; text: string }>;
+  loading: boolean;
+  glitching: boolean;
+}) {
+  const endRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [lines.length, loading]);
+
+  return (
+    <div
+      className={
+        "flex h-[100dvh] flex-col bg-background " +
+        (glitching ? "ax-glitch-out" : "")
+      }
+    >
+      <header className="flex items-center gap-3 border-b border-line px-6 py-4">
+        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-400 to-purple-500 text-sm font-bold text-white">
+          H
+        </div>
+        <div>
+          <h1 className="text-lg font-bold tracking-tight">H Chat</h1>
+          <p className="text-[11px] text-muted">
+            HYUNDAI AUTOEVER · AI Assistant
+          </p>
+        </div>
+      </header>
+
+      <div className="ax-scroll mx-auto w-full max-w-3xl flex-1 overflow-y-auto px-6 py-8">
+        <ul className="flex flex-col gap-5">
+          {lines.map((l, i) => (
+            <li
+              key={i}
+              className={
+                "ax-fade-in flex " +
+                (l.who === "shin" ? "justify-end" : "justify-start")
+              }
+            >
+              <div
+                className={
+                  "max-w-[80%] " + (l.who === "shin" ? "text-right" : "")
+                }
+              >
+                <p className="mb-1 px-1 text-[13px] text-muted">
+                  {l.who === "shin" ? "신혁쌤" : "사회자"}
+                </p>
+                <p
+                  className={
+                    "whitespace-pre-wrap rounded-3xl px-5 py-3.5 text-left text-[22px] leading-snug " +
+                    (l.who === "shin"
+                      ? "rounded-tr-lg bg-gradient-to-br from-cyan-400 to-blue-500 text-white shadow-lg shadow-cyan-500/25"
+                      : "rounded-tl-lg border border-white/10 bg-white/[0.06]")
+                  }
+                >
+                  {i === lines.length - 1 && !loading ? (
+                    <IntroTypewriter text={l.text} />
+                  ) : (
+                    l.text
+                  )}
+                </p>
+              </div>
+            </li>
+          ))}
+          {loading ? (
+            <li className="ax-fade-in flex justify-start">
+              <div>
+                <p className="mb-1 px-1 text-[13px] font-semibold text-accent">
+                  H Chat
+                </p>
+                <p className="inline-flex items-center gap-1.5 rounded-3xl rounded-tl-lg border border-cyan-400/20 bg-cyan-400/5 px-6 py-4">
+                  <span className="h-2 w-2 animate-bounce rounded-full bg-accent" />
+                  <span
+                    className="h-2 w-2 animate-bounce rounded-full bg-accent"
+                    style={{ animationDelay: "140ms" }}
+                  />
+                  <span
+                    className="h-2 w-2 animate-bounce rounded-full bg-accent"
+                    style={{ animationDelay: "280ms" }}
+                  />
+                </p>
+              </div>
+            </li>
+          ) : null}
+        </ul>
+        <div ref={endRef} />
+      </div>
+
+      <footer className="px-6 pb-4 text-right text-[11px] text-muted/40">
+        → 다음
+      </footer>
+    </div>
+  );
+}
+
+function IntroTypewriter({ text }: { text: string }) {
+  const [shown, setShown] = useState("");
+  useEffect(() => {
+    setShown("");
+    let i = 0;
+    const id = window.setInterval(() => {
+      i++;
+      setShown(text.slice(0, i));
+      if (i >= text.length) window.clearInterval(id);
+    }, 34);
+    return () => window.clearInterval(id);
+  }, [text]);
+  return (
+    <>
+      {shown}
+      {shown.length < text.length ? (
+        <span className="ax-caret" aria-hidden />
+      ) : null}
+    </>
+  );
+}
+
+/* ── 시나리오용 채팅 말풍선 (DB 저장 안 함, 화면 전용) ── */
+
+function TheaterBubble({
+  who,
+  text,
+  animate,
+}: {
+  who: "shin" | "hchat";
+  text: string;
+  animate: boolean;
+}) {
+  const doneRef = useRef(false);
+  if (who === "shin") {
+    return (
+      <li className="ax-fade-in flex items-end gap-2">
+        <div className="w-9 shrink-0">
+          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#fbbf24] text-sm font-bold text-white">
+            신
+          </div>
+        </div>
+        <div className="flex max-w-[92%] flex-col items-start">
+          <div className="mb-0.5 text-[13px] font-semibold">신혁쌤</div>
+          <p className="whitespace-pre-wrap break-words rounded-2xl rounded-tl-md border border-white/10 bg-white/[0.05] px-4 py-2.5 text-[18px] leading-snug">
+            {text}
+          </p>
+        </div>
+      </li>
+    );
+  }
+  return (
+    <li className="ax-fade-in flex flex-row-reverse items-end gap-2">
+      <div className="w-9 shrink-0">
+        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-cyan-400 to-purple-500 text-[11px] font-bold text-white">
+          H
+        </div>
+      </div>
+      <div className="flex max-w-[92%] flex-col items-end">
+        <div className="mb-0.5 text-[13px] font-semibold text-accent">
+          H Chat
+        </div>
+        <div className="rounded-2xl rounded-tr-md border border-cyan-400/20 bg-cyan-400/5 px-4 py-3">
+          <p className="whitespace-pre-wrap break-words text-[19px] leading-snug">
+            {animate ? (
+              <Typewriter
+                text={text}
+                instant={doneRef.current}
+                onDone={() => {
+                  doneRef.current = true;
+                }}
+              />
+            ) : (
+              text
+            )}
+          </p>
+        </div>
+      </div>
+    </li>
   );
 }
 
@@ -176,10 +570,28 @@ function OnlineBadge() {
   );
 }
 
+function colorFromKey(key: string): string {
+  const palette = [
+    "#38bdf8",
+    "#34d399",
+    "#fbbf24",
+    "#fb7185",
+    "#c084fc",
+    "#22d3ee",
+    "#f472b6",
+    "#2dd4bf",
+  ];
+  let hash = 0;
+  for (let i = 0; i < key.length; i++) {
+    hash = (hash * 31 + key.charCodeAt(i)) | 0;
+  }
+  return palette[Math.abs(hash) % palette.length];
+}
+
 function PptPanel({ url }: { url: string | null }) {
   if (!url) {
     return (
-      <section className="ax-card flex min-h-0 items-center justify-center overflow-hidden">
+      <section className="ax-card flex h-full min-h-0 items-center justify-center overflow-hidden">
         <div className="px-8 text-center text-muted">
           <p className="text-[11px] font-semibold tracking-[0.22em] text-accent">
             PPT EMBED
@@ -192,7 +604,7 @@ function PptPanel({ url }: { url: string | null }) {
     );
   }
   return (
-    <section className="ax-card overflow-hidden">
+    <section className="ax-card h-full overflow-hidden">
       <iframe
         src={url}
         className="h-full w-full"
@@ -219,7 +631,6 @@ function StageItem({
 
   return (
     <li className="ax-fade-in flex flex-col gap-2.5">
-      {/* 청중 채팅: 좌측 */}
       <div className="flex items-end gap-2">
         <div className="w-9 shrink-0">
           <div
@@ -251,7 +662,6 @@ function StageItem({
         </div>
       </div>
 
-      {/* AI 답변: 우측, 질문 인용 먼저 */}
       {hasAnswer ? (
         <div className="flex flex-row-reverse items-end gap-2">
           <div className="w-9 shrink-0">
