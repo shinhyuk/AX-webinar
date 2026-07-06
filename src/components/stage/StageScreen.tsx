@@ -353,6 +353,14 @@ export function StageScreen({ demo = false }: { demo?: boolean }) {
     return () => window.clearTimeout(id);
   }, [transformPhase, goAssemble]);
 
+  // 연출이 끝나면 포커스를 창으로 회수해 다음 키 입력이 바로 먹히게 한다
+  useEffect(() => {
+    if (transformPhase !== "none") return;
+    const el = document.activeElement;
+    if (el instanceof HTMLElement && el !== document.body) el.blur();
+    window.focus();
+  }, [transformPhase]);
+
   // 인트로 동안 영상 미리 버퍼링
   useEffect(() => {
     if (!demo) return;
@@ -376,14 +384,21 @@ export function StageScreen({ demo = false }: { demo?: boolean }) {
       // 수정키 단독 입력은 무시
       if (["Shift", "Control", "Alt", "Meta", "CapsLock"].includes(e.key))
         return;
-      if (e.key === "ArrowLeft") {
-        e.preventDefault();
-        back();
-      } else if (e.key === "0") {
+      if (e.key === "0") {
         setExited(true);
         clearTransformTimers();
         videoRef.current?.pause();
         setTransformPhase("none");
+        return;
+      }
+      // 변신 연출(글리치/영상/조립) 중에는 키 입력이 단계를 건너뛰지 않도록 무시
+      if (transformPhaseRef.current !== "none") {
+        e.preventDefault();
+        return;
+      }
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        back();
       } else {
         // 아무 키나 누르면 다음 장면으로
         e.preventDefault();
@@ -552,9 +567,15 @@ export function StageScreen({ demo = false }: { demo?: boolean }) {
           </section>
       </div>
 
-      {/* QR 오버레이 */}
+      {/* QR 오버레이 — 아무 키나 누르거나 화면을 클릭/탭하면 다음으로 */}
       {qrState === "big" ? (
-        <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+        <div
+          onClick={demo && !exited ? advance : undefined}
+          className={
+            "absolute inset-0 z-40 flex items-center justify-center bg-black/60 backdrop-blur-sm" +
+            (demo && !exited ? " cursor-pointer" : "")
+          }
+        >
           <div className="ax-pop-in flex flex-col items-center rounded-3xl bg-white px-10 py-8 shadow-2xl">
             <p className="text-[13px] font-bold tracking-[0.2em] text-slate-500">
               지금 접속하세요
