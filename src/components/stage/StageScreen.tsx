@@ -446,22 +446,31 @@ export function StageScreen({ demo = false }: { demo?: boolean }) {
     setTypedIds(new Set(initialIdsRef.current));
   }, [loading, messages]);
 
-  // 채팅은 항상 최신(하단)이 보이도록 — 새 메시지·타이핑 애니메이션으로
-  // 내용 높이가 변할 때마다 스크롤을 바닥에 고정
+  // 채팅 자동 스크롤: 바닥에 붙어 있을 때만 새 내용에 맞춰 바닥 유지.
+  // 위로 스크롤해 과거를 보는 중에는 방해하지 않는다.
   const chatScrollRef = useRef<HTMLDivElement | null>(null);
   const chatContentRef = useRef<HTMLDivElement | null>(null);
+  const chatPinnedRef = useRef(true);
   useEffect(() => {
     const box = chatScrollRef.current;
     const content = chatContentRef.current;
     if (!box || !content) return;
-    const stick = () => {
-      box.scrollTop = box.scrollHeight;
+    const onScroll = () => {
+      chatPinnedRef.current =
+        box.scrollHeight - box.scrollTop - box.clientHeight < 48;
     };
-    stick();
+    const stick = () => {
+      if (chatPinnedRef.current) box.scrollTop = box.scrollHeight;
+    };
+    box.scrollTop = box.scrollHeight;
+    box.addEventListener("scroll", onScroll, { passive: true });
     const ro = new ResizeObserver(stick);
     ro.observe(content);
     ro.observe(box);
-    return () => ro.disconnect();
+    return () => {
+      box.removeEventListener("scroll", onScroll);
+      ro.disconnect();
+    };
   }, [loading]);
 
 
@@ -586,11 +595,9 @@ export function StageScreen({ demo = false }: { demo?: boolean }) {
               </div>
             </header>
             <TopQuestions messages={messages} />
-            {/* flex-col-reverse: 스크롤이 항상 바닥(최신)에 고정 — 타이핑으로
-                내용이 길어져도 잘리지 않음 */}
             <div
               ref={chatScrollRef}
-              className="ax-scroll flex flex-1 min-h-0 flex-col-reverse overflow-y-auto px-4 py-4"
+              className="ax-scroll flex-1 min-h-0 overflow-y-auto px-4 py-4"
             >
               <div ref={chatContentRef} className="flex min-h-full flex-col">
                 {loading ? (
