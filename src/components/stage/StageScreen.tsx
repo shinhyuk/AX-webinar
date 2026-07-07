@@ -19,9 +19,11 @@ const QR_URL = "https://hrax.app";
 
 /* ── 데모 시나리오 스크립트 ─────────────────────────────── */
 
+type IntroWho = "host" | "shin" | "hchat";
+
 type TheaterStep =
   | { kind: "title" }
-  | { kind: "chat"; who: "host" | "shin"; text: string }
+  | { kind: "chat"; who: IntroWho; text: string }
   | { kind: "loading" }
   | { kind: "transform" };
 
@@ -39,11 +41,22 @@ const THEATER_SCRIPT: TheaterStep[] = [
     text: "H Chat! 세상에 없던 발표 형식과 자료 만들어줘!",
   },
   { kind: "loading" },
+  {
+    kind: "chat",
+    who: "hchat",
+    text: "네, 알겠습니다.\n청중 페르소나는 다음과 같이 지정해보겠습니다.\n\n청중 페르소나 : 기업/관공서 HRD 담당자\n· 하는 일 : 구성원 역량 향상을 위한 교육 기획/운영\n· 요즘 관심사 : 효과적인 AI 교육 기획\n· 세미나에 온 이유 : AI 교육 기획에 참고할 만한 아이디어 / 인사이트",
+  },
+  { kind: "loading" },
+  {
+    kind: "chat",
+    who: "hchat",
+    text: "청중들이 논의할 수 있도록 채팅창과 발표자료를 만들겠습니다.",
+  },
   { kind: "transform" }, // 변신 완료 = 시나리오 끝 (QR은 채팅창 상단에 상시 표시)
 ];
 
 type TheaterState = {
-  introLines: Array<{ who: "host" | "shin"; text: string }>;
+  introLines: Array<{ who: IntroWho; text: string }>;
   loading: boolean;
   transformed: boolean;
 };
@@ -380,6 +393,16 @@ export function StageScreen({ demo = false }: { demo?: boolean }) {
       // 수정키 단독 입력은 무시
       if (["Shift", "Control", "Alt", "Meta", "CapsLock"].includes(e.key))
         return;
+      // F11 = 전체화면 토글 (장면 넘김 아님)
+      if (e.key === "F11") {
+        e.preventDefault();
+        if (document.fullscreenElement) {
+          void document.exitFullscreen().catch(() => {});
+        } else {
+          void document.documentElement.requestFullscreen().catch(() => {});
+        }
+        return;
+      }
       if (e.key === "0") {
         setExited(true);
         clearTransformTimers();
@@ -441,9 +464,6 @@ export function StageScreen({ demo = false }: { demo?: boolean }) {
     return () => ro.disconnect();
   }, [loading]);
 
-  useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [messages]);
 
   const showTitle = demo && !exited && stepIndex === 0;
   const showIntro =
@@ -566,9 +586,11 @@ export function StageScreen({ demo = false }: { demo?: boolean }) {
               </div>
             </header>
             <TopQuestions messages={messages} />
+            {/* flex-col-reverse: 스크롤이 항상 바닥(최신)에 고정 — 타이핑으로
+                내용이 길어져도 잘리지 않음 */}
             <div
               ref={chatScrollRef}
-              className="ax-scroll flex-1 min-h-0 overflow-y-auto px-4 py-4"
+              className="ax-scroll flex flex-1 min-h-0 flex-col-reverse overflow-y-auto px-4 py-4"
             >
               <div ref={chatContentRef} className="flex min-h-full flex-col">
                 {loading ? (
@@ -639,7 +661,7 @@ function IntroChat({
   glitching,
   onAdvance,
 }: {
-  lines: Array<{ who: "host" | "shin"; text: string }>;
+  lines: Array<{ who: IntroWho; text: string }>;
   loading: boolean;
   glitching: boolean;
   onAdvance: () => void;
@@ -684,19 +706,32 @@ function IntroChat({
                   "max-w-[80%] " + (l.who === "shin" ? "text-right" : "")
                 }
               >
-                <p className="mb-1 px-1 text-[13px] text-muted">
-                  {l.who === "shin" ? "신혁쌤" : "사회자"}
+                <p
+                  className={
+                    "mb-1 px-1 text-[13px] " +
+                    (l.who === "hchat"
+                      ? "font-semibold text-accent"
+                      : "text-muted")
+                  }
+                >
+                  {l.who === "shin"
+                    ? "신혁쌤"
+                    : l.who === "hchat"
+                      ? "H Chat"
+                      : "사회자"}
                 </p>
                 <p
                   className={
                     "whitespace-pre-wrap rounded-3xl px-5 py-3.5 text-left text-[22px] leading-snug " +
                     (l.who === "shin"
                       ? "rounded-tr-lg bg-gradient-to-br from-cyan-400 to-blue-500 text-white shadow-lg shadow-cyan-500/25"
-                      : "rounded-tl-lg border border-white/10 bg-white/[0.06]")
+                      : l.who === "hchat"
+                        ? "rounded-tl-lg border border-cyan-400/20 bg-cyan-400/5"
+                        : "rounded-tl-lg border border-white/10 bg-white/[0.06]")
                   }
                 >
                   {i === lines.length - 1 && !loading ? (
-                    <IntroTypewriter text={l.text} />
+                    <IntroTypewriter text={l.text} silent={l.who === "hchat"} />
                   ) : (
                     l.text
                   )}
@@ -731,19 +766,27 @@ function IntroChat({
   );
 }
 
-function IntroTypewriter({ text }: { text: string }) {
+function IntroTypewriter({
+  text,
+  silent = false,
+}: {
+  text: string;
+  silent?: boolean;
+}) {
   const [shown, setShown] = useState("");
   useEffect(() => {
     setShown("");
     let i = 0;
+    // H Chat 답변처럼 긴 텍스트는 조금 빠르게
+    const interval = text.length > 80 ? 18 : 34;
     const id = window.setInterval(() => {
       i++;
       setShown(text.slice(0, i));
-      if (text[i - 1] !== " ") playKeySound();
+      if (!silent && text[i - 1] !== " ") playKeySound();
       if (i >= text.length) window.clearInterval(id);
-    }, 34);
+    }, interval);
     return () => window.clearInterval(id);
-  }, [text]);
+  }, [text, silent]);
   return (
     <>
       {shown}
