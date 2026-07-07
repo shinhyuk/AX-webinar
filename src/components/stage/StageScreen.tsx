@@ -22,8 +22,7 @@ const QR_URL = "https://hrax.app";
 type TheaterStep =
   | { kind: "chat"; who: "host" | "shin"; text: string }
   | { kind: "loading" }
-  | { kind: "transform" }
-  | { kind: "qr-corner" };
+  | { kind: "transform" };
 
 const THEATER_SCRIPT: TheaterStep[] = [
   { kind: "chat", who: "host", text: "신혁쌤, HRD 발표자료 준비해주세요." },
@@ -38,15 +37,13 @@ const THEATER_SCRIPT: TheaterStep[] = [
     text: "H Chat! 세상에 없던 발표 형식과 자료 만들어줘!",
   },
   { kind: "loading" },
-  { kind: "transform" }, // 변신과 동시에 QR 크게 표시
-  { kind: "qr-corner" }, // QR을 구석으로 — 이후 채팅창 유지
+  { kind: "transform" }, // 변신 완료 = 시나리오 끝 (QR은 채팅창 상단에 상시 표시)
 ];
 
 type TheaterState = {
   introLines: Array<{ who: "host" | "shin"; text: string }>;
   loading: boolean;
   transformed: boolean;
-  qr: "hidden" | "big" | "corner";
 };
 
 function deriveTheater(count: number): TheaterState {
@@ -54,7 +51,6 @@ function deriveTheater(count: number): TheaterState {
     introLines: [],
     loading: false,
     transformed: false,
-    qr: "hidden",
   };
   for (let i = 0; i < Math.min(count, THEATER_SCRIPT.length); i++) {
     const step = THEATER_SCRIPT[i];
@@ -69,10 +65,6 @@ function deriveTheater(count: number): TheaterState {
       case "transform":
         s.transformed = true;
         s.loading = false;
-        s.qr = "big";
-        break;
-      case "qr-corner":
-        s.qr = "corner";
         break;
     }
   }
@@ -291,11 +283,6 @@ export function StageScreen({ demo = false }: { demo?: boolean }) {
 
   const t = deriveTheater(exited ? THEATER_SCRIPT.length : stepIndex);
   const transformed = exited || t.transformed;
-  const qrState: "hidden" | "big" | "corner" = exited
-    ? demo
-      ? "corner"
-      : "hidden"
-    : t.qr;
 
   const advance = useCallback(() => {
     setStepIndex((i) => {
@@ -519,6 +506,23 @@ export function StageScreen({ demo = false }: { demo?: boolean }) {
             (assembling ? "ax-assemble-right" : "")
           }
         >
+            {/* 참여 QR — 채팅창 상단 상시 표시 */}
+            <div className="flex items-center gap-4 border-b border-line bg-white/[0.03] px-5 py-3">
+              <div className="shrink-0 rounded-xl bg-white p-2">
+                <QRCodeSVG value={QR_URL} size={84} />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[11px] font-semibold tracking-[0.22em] text-accent">
+                  JOIN NOW
+                </p>
+                <p className="mt-0.5 truncate text-2xl font-bold tracking-tight">
+                  hrax.app
+                </p>
+                <p className="mt-0.5 text-[12px] text-muted">
+                  질문과 반응을 실시간으로
+                </p>
+              </div>
+            </div>
             <header className="flex items-start justify-between border-b border-line px-5 py-3">
               <div>
                 <p className="text-[11px] font-semibold tracking-[0.22em] text-accent">
@@ -588,37 +592,6 @@ export function StageScreen({ demo = false }: { demo?: boolean }) {
         {chatHidden ? "‹" : "›"}
       </button>
 
-      {/* QR 오버레이 — 아무 키나 누르거나 화면을 클릭/탭하면 다음으로 */}
-      {qrState === "big" ? (
-        <div
-          onClick={demo && !exited ? advance : undefined}
-          className={
-            "absolute inset-0 z-40 flex items-center justify-center bg-black/60 backdrop-blur-sm" +
-            (demo && !exited ? " cursor-pointer" : "")
-          }
-        >
-          <div className="ax-pop-in flex flex-col items-center rounded-3xl bg-white px-10 py-8 shadow-2xl">
-            <p className="text-[13px] font-bold tracking-[0.2em] text-slate-500">
-              지금 접속하세요
-            </p>
-            <div className="mt-4">
-              <QRCodeSVG value={QR_URL} size={280} />
-            </div>
-            <p className="mt-4 text-2xl font-bold text-slate-900">hrax.app</p>
-            <p className="mt-1 text-sm text-slate-500">
-              질문과 반응을 실시간으로 남길 수 있어요
-            </p>
-          </div>
-        </div>
-      ) : null}
-      {qrState === "corner" ? (
-        <div className="ax-pop-in absolute bottom-6 left-6 z-30 flex flex-col items-center rounded-2xl bg-white p-3 shadow-xl">
-          <QRCodeSVG value={QR_URL} size={96} />
-          <p className="mt-1.5 text-[11px] font-bold text-slate-700">
-            hrax.app
-          </p>
-        </div>
-      ) : null}
     </div>
   );
 }
