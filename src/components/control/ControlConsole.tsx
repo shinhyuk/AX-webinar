@@ -401,8 +401,32 @@ function MessageRow({
   onAnswered: () => void;
 }) {
   const [busy, setBusy] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const hasAnswer = !!message.answer;
+
+  async function handleDelete() {
+    if (deleting || busy) return;
+    const ok = window.confirm(
+      `이 메시지를 삭제할까요?\n\n"${message.content.slice(0, 80)}"\n\n청중 화면에서도 즉시 사라지며 되돌릴 수 없습니다.`,
+    );
+    if (!ok) return;
+    setDeleting(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/control/delete-message", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messageId: message.id }),
+      });
+      const j = (await res.json().catch(() => ({}))) as { error?: string };
+      if (!res.ok) throw new Error(j.error ?? "삭제 실패");
+      onAnswered();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "삭제 실패");
+      setDeleting(false);
+    }
+  }
 
   async function handleAnswer() {
     if (busy) return;
@@ -462,14 +486,24 @@ function MessageRow({
             <span className="ml-2 text-muted/50">· {message.model}</span>
           ) : null}
         </span>
-        <button
-          type="button"
-          onClick={handleAnswer}
-          disabled={busy}
-          className="ax-btn-ghost px-3 py-1 text-[11px]"
-        >
-          {busy ? "생성 중..." : hasAnswer ? "재생성" : "수동 답변"}
-        </button>
+        <span className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={handleAnswer}
+            disabled={busy || deleting}
+            className="ax-btn-ghost px-3 py-1 text-[11px]"
+          >
+            {busy ? "생성 중..." : hasAnswer ? "재생성" : "수동 답변"}
+          </button>
+          <button
+            type="button"
+            onClick={handleDelete}
+            disabled={deleting || busy}
+            className="ax-btn-danger px-3 py-1 text-[11px]"
+          >
+            {deleting ? "삭제 중..." : "삭제"}
+          </button>
+        </span>
       </div>
 
       {hasAnswer ? (
