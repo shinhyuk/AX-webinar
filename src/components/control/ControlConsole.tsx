@@ -6,8 +6,9 @@ import useSWR from "swr";
 import { getSupabaseBrowser } from "@/lib/supabase-browser";
 import type { AnswerModel, Config, Message } from "@/lib/types";
 
-// Supabase 무료 플랜의 파일당 업로드 한도
-const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
+// 클라이언트 상한. 실제 한도는 Supabase 플랜이 결정:
+// 무료 플랜 50MB, Pro 플랜은 대시보드(Settings → Storage)에서 상향 가능
+const MAX_UPLOAD_BYTES = 200 * 1024 * 1024;
 
 const fetcher = async (url: string) => {
   const res = await fetch(url, { cache: "no-store" });
@@ -151,7 +152,15 @@ function SettingsPanel() {
         .uploadToSignedUrl(j.path, j.token, file, {
           contentType: file.type || undefined,
         });
-      if (upError) throw new Error(`업로드 실패: ${upError.message}`);
+      if (upError) {
+        const msg = upError.message ?? "";
+        if (/exceeded|too large|413|maximum/i.test(msg)) {
+          throw new Error(
+            "Supabase 플랜의 파일 크기 한도를 초과했습니다. 무료 플랜은 50MB까지이며, Pro 플랜에서는 Settings → Storage에서 한도를 올릴 수 있습니다.",
+          );
+        }
+        throw new Error(`업로드 실패: ${msg}`);
+      }
 
       // 3) config에 임베드 URL 반영
       const save = await fetch("/api/control/config", {
@@ -225,7 +234,8 @@ function SettingsPanel() {
           <p className="mt-0.5 text-[11px] text-muted/70">
             PDF는 자체 뷰어로 표시되어 리모컨(방향키)으로 바로 넘길 수 있습니다.
             ppt/pptx는 Office Online 뷰어로 임베드됩니다 (넘김은 뷰어 클릭 필요).
-            최대 50MB.
+            파일 크기 한도: Supabase 무료 플랜 50MB, Pro는 설정에서 상향 가능
+            (최대 200MB). 대용량은 PDF 권장.
           </p>
           <div className="mt-3 flex items-center gap-2">
             <input
