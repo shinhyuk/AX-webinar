@@ -3,7 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
+import { getSupabaseBrowser } from "@/lib/supabase-browser";
 import type { AnswerModel, Config, Message } from "@/lib/types";
+
+// Supabase 무료 플랜의 파일당 업로드 한도
+const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
 
 const fetcher = async (url: string) => {
   const res = await fetch(url, { cache: "no-store" });
@@ -117,18 +121,53 @@ function SettingsPanel() {
     setUploadError(null);
     setUploading(true);
     try {
-      const form = new FormData();
-      form.append("file", file);
-      const res = await fetch("/api/control/upload-ppt", {
+      if (file.size > MAX_UPLOAD_BYTES) {
+        throw new Error(
+          `파일이 너무 큽니다 (${(file.size / 1024 / 1024).toFixed(1)}MB). 최대 ${MAX_UPLOAD_BYTES / 1024 / 1024}MB까지 가능합니다.`,
+        );
+      }
+
+      // 1) 서명 업로드 URL 발급 (파일은 서버를 거치지 않음 — Vercel 4.5MB 제한 우회)
+      const res = await fetch("/api/control/upload-url", {
         method: "POST",
-        body: form,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: file.name }),
       });
       const j = (await res.json().catch(() => ({}))) as {
+        path?: string;
+        token?: string;
         embedUrl?: string;
         error?: string;
       };
-      if (!res.ok) throw new Error(j.error ?? "업로드 실패");
-      if (j.embedUrl) setPptUrl(j.embedUrl);
+      if (!res.ok || !j.path || !j.token || !j.embedUrl) {
+        throw new Error(j.error ?? "업로드 URL 발급 실패");
+      }
+
+      // 2) 브라우저에서 Supabase Storage로 직접 업로드
+      const supabase = getSupabaseBrowser();
+      if (!supabase) throw new Error("Supabase 설정이 없습니다.");
+      const { error: upError } = await supabase.storage
+        .from("ppt")
+        .uploadToSignedUrl(j.path, j.token, file, {
+          contentType: file.type || undefined,
+        });
+      if (upError) throw new Error(`업로드 실패: ${upError.message}`);
+
+      // 3) config에 임베드 URL 반영
+      const save = await fetch("/api/control/config", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ppt_embed_url: j.embedUrl,
+          kb_text: kbText.trim() || null,
+          topic_desc: topicDesc.trim() || null,
+        }),
+      });
+      if (!save.ok) {
+        const sj = (await save.json().catch(() => ({}))) as { error?: string };
+        throw new Error(sj.error ?? "업로드 후 설정 저장 실패");
+      }
+      setPptUrl(j.embedUrl);
       await mutate();
     } catch (e) {
       setUploadError(e instanceof Error ? e.message : "업로드 실패");
@@ -186,6 +225,7 @@ function SettingsPanel() {
           <p className="mt-0.5 text-[11px] text-muted/70">
             PDF는 자체 뷰어로 표시되어 리모컨(방향키)으로 바로 넘길 수 있습니다.
             ppt/pptx는 Office Online 뷰어로 임베드됩니다 (넘김은 뷰어 클릭 필요).
+            최대 50MB.
           </p>
           <div className="mt-3 flex items-center gap-2">
             <input
