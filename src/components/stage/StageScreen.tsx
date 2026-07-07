@@ -269,6 +269,9 @@ export function StageScreen({ demo = false }: { demo?: boolean }) {
   const endRef = useRef<HTMLDivElement | null>(null);
   const initialIdsRef = useRef<Set<string> | null>(null);
 
+  // 채팅 패널 표시 여부 (우측으로 접기/펼치기)
+  const [chatHidden, setChatHidden] = useState(false);
+
   // 시나리오 상태
   const [stepIndex, setStepIndex] = useState(0);
   // 변신 시퀀스: glitch(붕괴 1초) → video(AI 영상 ~9초) → assemble(패널 조립) → none
@@ -490,7 +493,13 @@ export function StageScreen({ demo = false }: { demo?: boolean }) {
         <div className="ax-flash pointer-events-none absolute inset-0 z-50 bg-white" />
       ) : null}
 
-      <div className="grid h-full grid-cols-[7fr_3fr] gap-3">
+      <div
+        className="grid h-full transition-all duration-500 ease-in-out"
+        style={{
+          gridTemplateColumns: chatHidden ? "1fr 0fr" : "31fr 9fr",
+          columnGap: chatHidden ? "0px" : "12px",
+        }}
+      >
         <div
           className={
             assembling ? "ax-assemble-left min-h-0" : "min-h-0"
@@ -505,7 +514,8 @@ export function StageScreen({ demo = false }: { demo?: boolean }) {
 
         <section
           className={
-            "ax-card flex min-h-0 flex-col overflow-hidden " +
+            "ax-card flex min-h-0 min-w-0 flex-col overflow-hidden transition-opacity duration-500 " +
+            (chatHidden ? "opacity-0 " : "") +
             (assembling ? "ax-assemble-right" : "")
           }
         >
@@ -566,6 +576,17 @@ export function StageScreen({ demo = false }: { demo?: boolean }) {
             </div>
           </section>
       </div>
+
+      {/* 채팅 패널 접기/펼치기 핸들 (우측 가장자리) */}
+      <button
+        type="button"
+        onClick={() => setChatHidden((v) => !v)}
+        aria-label={chatHidden ? "채팅창 열기" : "채팅창 숨기기"}
+        title={chatHidden ? "채팅창 열기" : "채팅창 숨기기"}
+        className="ax-btn-ghost absolute right-1.5 top-1/2 z-40 flex h-16 w-7 -translate-y-1/2 items-center justify-center rounded-xl text-lg"
+      >
+        {chatHidden ? "‹" : "›"}
+      </button>
 
       {/* QR 오버레이 — 아무 키나 누르거나 화면을 클릭/탭하면 다음으로 */}
       {qrState === "big" ? (
