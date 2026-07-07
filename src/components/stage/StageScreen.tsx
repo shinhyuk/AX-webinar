@@ -471,7 +471,9 @@ export function StageScreen({ demo = false }: { demo?: boolean }) {
       box.removeEventListener("scroll", onScroll);
       ro.disconnect();
     };
-  }, [loading]);
+    // stepIndex/transformPhase/exited: 인트로 화면 동안에는 채팅 패널이 없어서
+    // ref가 비어 있으므로, 메인 화면이 나타나는 시점에 옵저버를 다시 붙인다
+  }, [loading, stepIndex, transformPhase, exited]);
 
 
   const showTitle = demo && !exited && stepIndex === 0;
