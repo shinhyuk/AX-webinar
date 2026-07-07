@@ -464,9 +464,6 @@ export function StageScreen({ demo = false }: { demo?: boolean }) {
     return () => ro.disconnect();
   }, [loading]);
 
-  useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [messages]);
 
   const showTitle = demo && !exited && stepIndex === 0;
   const showIntro =
@@ -589,9 +586,11 @@ export function StageScreen({ demo = false }: { demo?: boolean }) {
               </div>
             </header>
             <TopQuestions messages={messages} />
+            {/* flex-col-reverse: 스크롤이 항상 바닥(최신)에 고정 — 타이핑으로
+                내용이 길어져도 잘리지 않음 */}
             <div
               ref={chatScrollRef}
-              className="ax-scroll flex-1 min-h-0 overflow-y-auto px-4 py-4"
+              className="ax-scroll flex flex-1 min-h-0 flex-col-reverse overflow-y-auto px-4 py-4"
             >
               <div ref={chatContentRef} className="flex min-h-full flex-col">
                 {loading ? (
