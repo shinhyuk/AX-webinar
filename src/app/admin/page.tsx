@@ -10,5 +10,6 @@ export default async function StagePage({
   searchParams: Promise<{ demo?: string }>;
 }) {
   const sp = await searchParams;
-  return <StageScreen demo={sp?.demo === "1"} />;
+  // 기본이 데모(타이틀 → H Chat → 변신 영상) 흐름. ?demo=0 으로 바로 메인 화면 진입 가능
+  return <StageScreen demo={sp?.demo !== "0"} />;
 }

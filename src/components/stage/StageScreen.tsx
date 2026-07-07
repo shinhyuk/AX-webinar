@@ -20,11 +20,13 @@ const QR_URL = "https://hrax.app";
 /* ── 데모 시나리오 스크립트 ─────────────────────────────── */
 
 type TheaterStep =
+  | { kind: "title" }
   | { kind: "chat"; who: "host" | "shin"; text: string }
   | { kind: "loading" }
   | { kind: "transform" };
 
 const THEATER_SCRIPT: TheaterStep[] = [
+  { kind: "title" }, // 발표 타이틀 슬라이드 (public/title-slide.png)
   { kind: "chat", who: "host", text: "신혁쌤, HRD 발표자료 준비해주세요." },
   {
     kind: "chat",
@@ -55,6 +57,8 @@ function deriveTheater(count: number): TheaterState {
   for (let i = 0; i < Math.min(count, THEATER_SCRIPT.length); i++) {
     const step = THEATER_SCRIPT[i];
     switch (step.kind) {
+      case "title":
+        break;
       case "chat":
         s.introLines.push({ who: step.who, text: step.text });
         s.loading = false;
@@ -263,6 +267,8 @@ export function StageScreen({ demo = false }: { demo?: boolean }) {
 
   // 채팅 패널 표시 여부 (우측으로 접기/펼치기)
   const [chatHidden, setChatHidden] = useState(false);
+  // QR 확대 팝업 (QR 클릭 → 크게, 아무 데나 클릭 → 닫힘)
+  const [qrPopup, setQrPopup] = useState(false);
 
   // 시나리오 상태
   const [stepIndex, setStepIndex] = useState(0);
@@ -439,9 +445,26 @@ export function StageScreen({ demo = false }: { demo?: boolean }) {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages]);
 
+  const showTitle = demo && !exited && stepIndex === 0;
   const showIntro =
     demo && !exited && (!transformed || transformPhase === "glitch");
   const assembling = demo && !exited && transformPhase === "assemble";
+
+  if (showTitle) {
+    return (
+      <div
+        onClick={advance}
+        className="flex h-[100dvh] cursor-pointer items-center justify-center bg-white"
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/title-slide.png"
+          alt="발표 타이틀"
+          className="h-full w-full object-contain"
+        />
+      </div>
+    );
+  }
 
   if (showIntro) {
     return (
@@ -506,8 +529,11 @@ export function StageScreen({ demo = false }: { demo?: boolean }) {
             (assembling ? "ax-assemble-right" : "")
           }
         >
-            {/* 참여 QR — 채팅창 상단 상시 표시 */}
-            <div className="flex items-center gap-4 border-b border-line bg-white/[0.03] px-5 py-3">
+            {/* 참여 QR — 채팅창 상단 상시 표시, 클릭하면 크게 팝업 */}
+            <div
+              onClick={() => setQrPopup(true)}
+              className="flex cursor-pointer items-center gap-4 border-b border-line bg-white/[0.03] px-5 py-3 transition-colors hover:bg-white/[0.06]"
+            >
               <div className="shrink-0 rounded-xl bg-white p-2">
                 <QRCodeSVG value={QR_URL} size={84} />
               </div>
@@ -517,9 +543,6 @@ export function StageScreen({ demo = false }: { demo?: boolean }) {
                 </p>
                 <p className="mt-0.5 truncate text-2xl font-bold tracking-tight">
                   hrax.app
-                </p>
-                <p className="mt-0.5 text-[12px] text-muted">
-                  질문과 반응을 실시간으로
                 </p>
               </div>
             </div>
@@ -592,6 +615,18 @@ export function StageScreen({ demo = false }: { demo?: boolean }) {
         {chatHidden ? "‹" : "›"}
       </button>
 
+      {/* QR 확대 팝업 — 아무 데나 클릭하면 닫힘 */}
+      {qrPopup ? (
+        <div
+          onClick={() => setQrPopup(false)}
+          className="absolute inset-0 z-[70] flex cursor-pointer items-center justify-center bg-black/60 backdrop-blur-sm"
+        >
+          <div className="ax-pop-in flex flex-col items-center rounded-3xl bg-white px-10 py-8 shadow-2xl">
+            <QRCodeSVG value={QR_URL} size={320} />
+            <p className="mt-5 text-3xl font-bold text-slate-900">hrax.app</p>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
