@@ -428,3 +428,13 @@ textarea {
   color: var(--color-accent);
   animation: axCaretBlink 0.9s steps(2, start) infinite;
 }
+
+/* 스탬프 랠리: 도장 찍히는 팝 애니메이션 (요소 자체에 -rotate-6가 있으므로 scale만) */
+@keyframes stampPop {
+  0% { opacity: 0; scale: 2.4; }
+  60% { opacity: 1; scale: 0.92; }
+  100% { opacity: 1; scale: 1; }
+}
+.stamp-pop {
+  animation: stampPop 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
