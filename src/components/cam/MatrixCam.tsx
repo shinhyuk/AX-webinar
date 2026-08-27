@@ -2,8 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
-const GLYPHS =
-  "アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン0123456789ABCDEFXZ";
+const GLYPHS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
 /** 카메라 영상을 매트릭스 '디지털 레인'으로 렌더링.
  *  - 셀 밝기 = 카메라 픽셀 밝기 → 초록 글자 모자이크로 실루엣이 보인다
