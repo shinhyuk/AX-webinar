@@ -57,6 +57,9 @@ export function MatrixCam() {
     let rows = 0;
     let cell = 14;
     let drops: number[] = [];
+    // 자동 명암 보정 범위 (프레임 간 부드럽게 따라감)
+    let levelLo = 0.2;
+    let levelHi = 0.8;
 
     function resize() {
       if (!canvas) return;
@@ -105,6 +108,25 @@ export function MatrixCam() {
       sctx!.restore();
       const px = sctx!.getImageData(0, 0, cols, rows).data;
 
+      // 프레임 전체 밝기 분포(5%/95% 백분위)를 구해 자동 명암 보정.
+      // 밝은 사무실처럼 대비가 약한 장면에서도 실루엣이 또렷하게 보인다.
+      const total = cols * rows;
+      const lums = new Float32Array(total);
+      for (let i = 0; i < total; i++) {
+        const p = i * 4;
+        lums[i] =
+          (px[p] * 0.2126 + px[p + 1] * 0.7152 + px[p + 2] * 0.0722) / 255;
+      }
+      const sorted = Float32Array.from(
+        { length: Math.ceil(total / 4) },
+        (_, i) => lums[i * 4],
+      ).sort();
+      const lo = sorted[Math.floor(sorted.length * 0.05)];
+      const hi = sorted[Math.floor(sorted.length * 0.95)];
+      levelLo += (lo - levelLo) * 0.2;
+      levelHi += (hi - levelHi) * 0.2;
+      const range = Math.max(0.08, levelHi - levelLo);
+
       const w = window.innerWidth;
       const h = window.innerHeight;
       ctx!.fillStyle = "rgba(0, 0, 0, 0.28)";
@@ -115,24 +137,30 @@ export function MatrixCam() {
       for (let c = 0; c < cols; c++) {
         const head = drops[c];
         for (let r = 0; r < rows; r++) {
-          const i = (r * cols + c) * 4;
-          const lum =
-            (px[i] * 0.2126 + px[i + 1] * 0.7152 + px[i + 2] * 0.0722) / 255;
+          const idx = r * cols + c;
+          // 보정된 밝기 0~1 + 감마로 대비 강화 → 어두운 곳은 확실히 어둡게
+          const norm = Math.min(
+            1,
+            Math.max(0, (lums[idx] - levelLo) / range),
+          );
+          const v = norm * norm * (3 - 2 * norm); // smoothstep
           const isHead = r === head;
-          if (!isHead && lum < 0.06) continue;
-          const glyph = GLYPHS[((c * 31 + r * 17 + (t / 200) | 0) * 7) % GLYPHS.length];
+          if (!isHead && v < 0.18) continue;
+          const glyph =
+            GLYPHS[(((c * 31 + r * 17 + t / 200) | 0) * 7) % GLYPHS.length];
           if (isHead) {
             // 떨어지는 헤드: 밝은 흰-초록
-            ctx!.fillStyle = `rgba(210, 255, 220, ${0.35 + lum * 0.65})`;
+            ctx!.fillStyle = `rgba(210, 255, 220, ${0.35 + v * 0.65})`;
           } else {
-            const a = Math.min(1, lum * 1.6);
-            ctx!.fillStyle = `rgba(0, ${Math.floor(140 + lum * 115)}, 70, ${a})`;
+            const a = 0.25 + v * 0.75;
+            ctx!.fillStyle = `rgba(${Math.floor(v * v * 160)}, ${Math.floor(
+              100 + v * 155,
+            )}, ${Math.floor(60 + v * 60)}, ${a})`;
           }
           ctx!.fillText(glyph, c * cell, r * cell);
         }
         // 밝은 영역일수록 비가 빨리 내리는 느낌
-        const hi = (Math.min(rows - 1, Math.max(0, head)) * cols + c) * 4;
-        const headLum = (px[hi] + px[hi + 1] + px[hi + 2]) / (3 * 255);
+        const headLum = lums[Math.min(rows - 1, Math.max(0, head)) * cols + c];
         drops[c] += headLum > 0.3 || Math.random() < 0.75 ? 1 : 0;
         if (drops[c] >= rows && Math.random() > 0.95) drops[c] = 0;
         if (drops[c] >= rows + 8) drops[c] = 0;
